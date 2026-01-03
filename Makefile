@@ -33,7 +33,7 @@ help:
 get_quackle:
 	@if [ ! -d "$(QUACKLE_DIR)" ]; then \
 		echo "Cloning Quackle repository..."; \
-		git clone https://github.com/quackle/quackle.git $(QUACKLE_DIR); \
+		git clone --depth 1 https://github.com/quackle/quackle.git $(QUACKLE_DIR); \
 	else \
 		echo "Quackle directory already exists. Use 'git pull' to update."; \
 	fi
