@@ -1,4 +1,4 @@
 [submodule "quackle"]
 	path = quackle
 	url = https://github.com/quackle/quackle.git
-	ignore = dirty
+	ignore = all
