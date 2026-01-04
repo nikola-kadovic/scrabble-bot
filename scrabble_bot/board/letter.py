@@ -64,3 +64,45 @@ LETTER_SCORES = {
     Letter.Z: 10,
     Letter.BLANK: 0,
 }
+
+
+def get_letter_score(letter: Letter) -> int:
+    """
+    Returns the score for a letter.
+    """
+    return LETTER_SCORES[letter]
+
+
+def get_all_letters() -> set[Letter]:
+    """
+    Returns all letters in the alphabet.
+    """
+    return set([
+        Letter.A,
+        Letter.B,
+        Letter.C,
+        Letter.D,
+        Letter.E,
+        Letter.F,
+        Letter.G,
+        Letter.H,
+        Letter.I,
+        Letter.J,
+        Letter.K,
+        Letter.L,
+        Letter.M,
+        Letter.N,
+        Letter.O,
+        Letter.P,
+        Letter.Q,
+        Letter.R,
+        Letter.S,
+        Letter.T,
+        Letter.U,
+        Letter.V,
+        Letter.W,
+        Letter.X,
+        Letter.Y,
+        Letter.Z,
+        Letter.BLANK,
+    ])

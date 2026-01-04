@@ -2,9 +2,8 @@ from enum import Enum
 from typing import TypeAlias
 
 from scrabble_bot.gaddag.gaddag import Gaddag
-from scrabble_bot.board.letter import Letter
+from scrabble_bot.board.letter import Letter, get_all_letters
 from scrabble_bot.board.move import Move
-from scrabble_bot.board.board_utils import get_all_letters
 
 
 Point: TypeAlias = tuple[int, int]
