@@ -1,4 +1,4 @@
-from dictionary.gaddag import Gaddag
+from gaddag.gaddag import Gaddag
 import sys
 import os
 

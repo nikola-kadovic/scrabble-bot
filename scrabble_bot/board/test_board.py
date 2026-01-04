@@ -6,7 +6,7 @@ import pytest
 from scrabble_bot.board.board import Board, SquareType
 from scrabble_bot.board.letter import Letter, LETTER_SCORES
 from scrabble_bot.board.move import Move
-from scrabble_bot.dictionary.gaddag import Gaddag
+from scrabble_bot.gaddag.gaddag import Gaddag
 
 
 class TestLetter:
