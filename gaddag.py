@@ -59,6 +59,8 @@ class Gaddag:
     def __init__(self, wordlist_path: Optional[str] = None, words: list[str] = []):
         if wordlist_path is not None:
             self.wordlist_path = wordlist_path
+            self.words = []
+
             self.load_wordlist()
         else:
             self.words = words
