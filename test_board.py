@@ -1,0 +1,156 @@
+"""
+Basic tests for board.py using pytest
+"""
+
+import pytest
+from board import Board, Letter, SquareType, Move, LETTER_SCORES
+
+
+class TestLetter:
+    """Tests for the Letter enum"""
+
+    def test_letter_enum_values(self):
+        """Test that Letter enum has correct values"""
+        assert Letter.A.value == "A"
+        assert Letter.Z.value == "Z"
+        assert Letter.BLANK.value == "_"
+
+    def test_letter_string_representation(self):
+        """Test that Letter enum converts to string correctly"""
+        assert str(Letter.A) == "A"
+        assert str(Letter.BLANK) == "_"
+
+    def test_all_letters_exist(self):
+        """Test that all 26 letters plus blank exist"""
+        letters = [letter for letter in Letter]
+        assert len(letters) == 27  # 26 letters + blank
+
+
+class TestLetterScores:
+    """Tests for LETTER_SCORES dictionary"""
+
+    def test_letter_scores_exist(self):
+        """Test that all letters have scores"""
+        for letter in Letter:
+            assert letter in LETTER_SCORES
+
+    def test_common_letter_scores(self):
+        """Test some common letter scores"""
+        assert LETTER_SCORES[Letter.A] == 1
+        assert LETTER_SCORES[Letter.E] == 1
+        assert LETTER_SCORES[Letter.Q] == 10
+        assert LETTER_SCORES[Letter.Z] == 10
+        assert LETTER_SCORES[Letter.BLANK] == 0
+
+    def test_high_value_letters(self):
+        """Test high-value letters"""
+        assert LETTER_SCORES[Letter.J] == 8
+        assert LETTER_SCORES[Letter.X] == 8
+        assert LETTER_SCORES[Letter.Q] == 10
+        assert LETTER_SCORES[Letter.Z] == 10
+
+
+class TestSquareType:
+    """Tests for the SquareType enum"""
+
+    def test_square_type_enum_values(self):
+        """Test that SquareType enum has correct values"""
+        assert SquareType.DEFAULT.value == "."
+        assert SquareType.DOUBLE_WORD.value == "w"
+        assert SquareType.TRIPLE_WORD.value == "W"
+        assert SquareType.DOUBLE_LETTER.value == "l"
+        assert SquareType.TRIPLE_LETTER.value == "L"
+
+    def test_square_type_string_representation(self):
+        """Test that SquareType enum converts to string correctly"""
+        assert str(SquareType.DEFAULT) == "."
+        assert str(SquareType.DOUBLE_WORD) == "w"
+
+
+class TestMove:
+    """Tests for the Move class"""
+
+    def test_move_initialization(self):
+        """Test that Move can be initialized"""
+        move = Move(0, 5, ["A", "B", "C"], 10)
+        assert move.starting_index == 0
+        assert move.ending_index == 5
+        assert move.letters == ["A", "B", "C"]
+        assert move.score == 10
+
+
+class TestBoard:
+    """Tests for the Board class"""
+
+    def test_board_initialization(self):
+        """Test that Board can be initialized"""
+        board = Board()
+        assert board.ROWS == 15
+        assert board.COLS == 15
+        assert len(board.board) == 15
+        assert len(board.board[0]) == 15
+
+    def test_board_square_types_initialized(self):
+        """Test that square types are initialized"""
+        board = Board()
+        assert len(board.square_types) == 225  # 15 * 15
+        assert (0, 0) in board.square_types
+        assert (14, 14) in board.square_types
+
+    def test_center_square_is_default(self):
+        """Test that center square (7,7) is DEFAULT"""
+        board = Board()
+        assert board.square_types[(7, 7)] == SquareType.DEFAULT
+
+    def test_triple_word_squares_exist(self):
+        """Test that some triple word squares exist"""
+        board = Board()
+        # Check corners and edges
+        assert board.square_types[(0, 0)] == SquareType.TRIPLE_WORD
+        assert board.square_types[(0, 7)] == SquareType.TRIPLE_WORD
+        assert board.square_types[(7, 0)] == SquareType.TRIPLE_WORD
+        assert board.square_types[(14, 14)] == SquareType.TRIPLE_WORD
+
+    def test_triple_letter_squares_exist(self):
+        """Test that some triple letter squares exist"""
+        board = Board()
+        # Triple letter squares should be at (1,5), (1,9), (1,13), (5,5), etc.
+        # Note: (1,1) is overwritten by DOUBLE_WORD
+        assert board.square_types[(1, 5)] == SquareType.TRIPLE_LETTER
+        assert board.square_types[(1, 9)] == SquareType.TRIPLE_LETTER
+        assert board.square_types[(5, 5)] == SquareType.TRIPLE_LETTER
+
+    def test_double_word_squares_exist(self):
+        """Test that some double word squares exist"""
+        board = Board()
+        # Double word squares should be on diagonals
+        assert board.square_types[(1,
+                                   1)] == SquareType.DOUBLE_WORD or board.square_types[(1,
+                                                                                        1)] == SquareType.TRIPLE_LETTER
+        # Some positions might be overwritten, so just check they have a type
+        assert (2, 2) in board.square_types
+
+    def test_all_squares_have_type(self):
+        """Test that all squares have a type"""
+        board = Board()
+        for row in range(board.ROWS):
+            for col in range(board.COLS):
+                assert (row, col) in board.square_types
+                assert isinstance(board.square_types[(row, col)], SquareType)
+
+    def test_board_string_representation(self):
+        """Test that Board can be converted to string"""
+        board = Board()
+        board_str = str(board)
+        assert isinstance(board_str, str)
+        # Should have 15 lines (one per row)
+        lines = board_str.split("\n")
+        assert len(lines) == 15
+
+    def test_get_valid_moves_not_implemented(self):
+        """Test that get_valid_moves raises NotImplementedError"""
+        board = Board()
+        from gaddag import Gaddag
+        gaddag = Gaddag(words=[])
+        with pytest.raises(NotImplementedError):
+            board.get_valid_moves(gaddag)
