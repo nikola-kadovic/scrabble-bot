@@ -3,9 +3,10 @@ Basic tests for board.py using pytest
 """
 
 import pytest
-from board.board import Board, Letter, SquareType
-from board.letter import LETTER_SCORES
-from board.move import Move
+from scrabble_bot.board.board import Board, SquareType
+from scrabble_bot.board.letter import Letter, LETTER_SCORES
+from scrabble_bot.board.move import Move
+from scrabble_bot.dictionary.gaddag import Gaddag
 
 
 class TestLetter:
@@ -86,7 +87,8 @@ class TestBoard:
 
     def test_board_initialization(self):
         """Test that Board can be initialized"""
-        board = Board()
+        dictionary = Gaddag(words=[])
+        board = Board(dictionary)
         assert board.ROWS == 15
         assert board.COLS == 15
         assert len(board.board) == 15
@@ -94,19 +96,22 @@ class TestBoard:
 
     def test_board_square_types_initialized(self):
         """Test that square types are initialized"""
-        board = Board()
+        dictionary = Gaddag(words=[])
+        board = Board(dictionary)
         assert len(board.square_types) == 225  # 15 * 15
         assert (0, 0) in board.square_types
         assert (14, 14) in board.square_types
 
     def test_center_square_is_default(self):
         """Test that center square (7,7) is DEFAULT"""
-        board = Board()
+        dictionary = Gaddag(words=[])
+        board = Board(dictionary)
         assert board.square_types[(7, 7)] == SquareType.DEFAULT
 
     def test_triple_word_squares_exist(self):
         """Test that some triple word squares exist"""
-        board = Board()
+        dictionary = Gaddag(words=[])
+        board = Board(dictionary)
         # Check corners and edges
         assert board.square_types[(0, 0)] == SquareType.TRIPLE_WORD
         assert board.square_types[(0, 7)] == SquareType.TRIPLE_WORD
@@ -115,7 +120,8 @@ class TestBoard:
 
     def test_triple_letter_squares_exist(self):
         """Test that some triple letter squares exist"""
-        board = Board()
+        dictionary = Gaddag(words=[])
+        board = Board(dictionary)
         # Triple letter squares should be at (1,5), (1,9), (1,13), (5,5), etc.
         # Note: (1,1) is overwritten by DOUBLE_WORD
         assert board.square_types[(1, 5)] == SquareType.TRIPLE_LETTER
@@ -124,7 +130,8 @@ class TestBoard:
 
     def test_double_word_squares_exist(self):
         """Test that some double word squares exist"""
-        board = Board()
+        dictionary = Gaddag(words=[])
+        board = Board(dictionary)
         # Double word squares should be on diagonals
         assert board.square_types[(1,
                                    1)] == SquareType.DOUBLE_WORD or board.square_types[(1,
@@ -134,7 +141,8 @@ class TestBoard:
 
     def test_all_squares_have_type(self):
         """Test that all squares have a type"""
-        board = Board()
+        dictionary = Gaddag(words=[])
+        board = Board(dictionary)
         for row in range(board.ROWS):
             for col in range(board.COLS):
                 assert (row, col) in board.square_types
@@ -142,7 +150,8 @@ class TestBoard:
 
     def test_board_string_representation(self):
         """Test that Board can be converted to string"""
-        board = Board()
+        dictionary = Gaddag(words=[])
+        board = Board(dictionary)
         board_str = str(board)
         assert isinstance(board_str, str)
         # Should have 15 lines (one per row)
@@ -151,8 +160,7 @@ class TestBoard:
 
     def test_get_valid_moves_not_implemented(self):
         """Test that get_valid_moves raises NotImplementedError"""
-        board = Board()
-        from dictionary.gaddag import Gaddag
-        gaddag = Gaddag(words=[])
+        dictionary = Gaddag(words=[])
+        board = Board(dictionary)
         with pytest.raises(NotImplementedError):
-            board.get_valid_moves(gaddag)
+            board.get_valid_moves()

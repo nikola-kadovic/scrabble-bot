@@ -1,11 +1,9 @@
-from dataclasses import dataclass
-from dictionary.gaddag import Gaddag
 from enum import Enum
-
 from typing import TypeAlias
 
-from letter import Letter
-from move import Move
+from scrabble_bot.dictionary.gaddag import Gaddag
+from scrabble_bot.board.letter import Letter
+from scrabble_bot.board.move import Move
 from scrabble_bot.board.board_utils import get_all_letters
 
 
@@ -38,9 +36,11 @@ class Board:
     ROWS = 15
     COLS = 15
 
-    def __init__(self):
+    def __init__(self, dictionary: Gaddag):
         self.board: list[list[Letter]] = [
             [Letter.BLANK for _ in range(self.ROWS)] for _ in range(self.COLS)]
+
+        self._dictionary = dictionary
 
         self.square_types: dict[Point, SquareType] = {}
         self._build_square_types()
@@ -158,12 +158,12 @@ class Board:
         print(f"{LIGHT_BLUE}l{RESET}: Double Letter")
         print(f"{DARK_BLUE}L{RESET}: Triple Letter")
 
-    def get_valid_moves(self, dictionary: Gaddag) -> list[Move]:
+    def get_valid_moves(self) -> list[Move]:
         raise NotImplementedError("Not implemented")
 
     def place_word(self, word: list[Letter], starting_point, vertical: bool) -> bool:
         """
-        Places a word on the board.
+        Places a word on the board. May raise a ValueError if the move is invalid.
         """
 
         if not (0 <= starting_point[0] < self.ROWS and 0 <= starting_point[1] < self.COLS):
