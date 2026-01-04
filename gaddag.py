@@ -93,7 +93,7 @@ class Gaddag:
             current_state = current_state.add_arc(word[i])
         current_state = current_state.add_ending_arc(DELIMETER, word[-1])
 
-        # Add all other reverse prefixes word[i..0]◇ rev(word[i+1..n]), i = n-2, n-3, ..., 2
+        # Add all other reverse prefixes word[i..0]◇ rev(word[i+1..n]), i = n-2, n-3, ..., 2, with minimzation
         for m in range(len(word)-3, -1, -1):
             destination = current_state
             current_state = self.root
