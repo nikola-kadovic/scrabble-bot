@@ -13,6 +13,9 @@ https://users.cs.northwestern.edu/~robby/uc-courses/22001-2008-winter/faster-scr
 
 from __future__ import annotations
 from typing import Optional
+import pickle
+import os
+from pathlib import Path
 
 DELIMETER = "◇"
 
@@ -60,14 +63,17 @@ class Gaddag:
         if wordlist_path is not None:
             self.wordlist_path = wordlist_path
             self.words = []
-
             self.load_wordlist()
         else:
             self.words = words
+            self.wordlist_path = None
 
         self.root = State()
+        self._cache_dir = Path("temp")
 
     def load_wordlist(self):
+        if self.wordlist_path is None:
+            raise ValueError("wordlist_path must be set before calling load_wordlist()")
         with open(self.wordlist_path, 'r') as file:
             for idx, line in enumerate(file):
                 try:
@@ -77,9 +83,67 @@ class Gaddag:
                     continue
                 self.words.append(word)
     
-    def build_gaddag(self):
+    def _get_cache_path(self) -> Optional[Path]:
+        """Get the path to the cache file. Returns None if wordlist_path is not set."""
+        if self.wordlist_path is None:
+            return None
+        
+        # Use just the filename (without extension) as the cache key
+        filename = Path(self.wordlist_path).stem
+        self._cache_dir.mkdir(exist_ok=True)
+        return self._cache_dir / f"gaddag_{filename}.pkl"
+    
+    def _save_cache(self):
+        """Save the GADDAG to a pickle file. Only works when wordlist_path is provided."""
+        if self.wordlist_path is None:
+            return
+        
+        cache_path = self._get_cache_path()
+        if cache_path is None:
+            return
+        
+        try:
+            with open(cache_path, 'wb') as f:
+                pickle.dump(self.root, f)
+        except Exception as e:
+            print(f"Warning: Failed to save GADDAG cache: {e}")
+    
+    def _load_cache(self) -> bool:
+        """Load the GADDAG from a pickle file. Returns True if successful, False otherwise. Only works when wordlist_path is provided."""
+        if self.wordlist_path is None:
+            return False
+        
+        cache_path = self._get_cache_path()
+        if cache_path is None or not cache_path.exists():
+            return False
+        
+        try:
+            with open(cache_path, 'rb') as f:
+                self.root = pickle.load(f)
+            return True
+        except Exception as e:
+            print(f"Warning: Failed to load GADDAG cache: {e}")
+            return False
+    
+    def build_gaddag(self, use_cache: bool = True):
+        """
+        Build the GADDAG from the word list.
+        
+        Args:
+            use_cache: If True and wordlist_path is provided, try to load from cache first, 
+                      and save to cache after building. Caching is only available for file wordlists.
+        """
+        # Try to load from cache first (only works for file wordlists)
+        if use_cache and self.wordlist_path is not None and self._load_cache():
+            return
+        
+        # Build the GADDAG from scratch
         for word in self.words:
             self.add_word(word)
+        
+        # Save to cache after building (only works for file wordlists)
+        if use_cache and self.wordlist_path is not None:
+            self._save_cache()
 
 
     def add_word(self, word: str):

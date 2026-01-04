@@ -5,6 +5,8 @@ Basic unit tests for gaddag.py using pytest
 import pytest
 import os
 import tempfile
+import shutil
+from pathlib import Path
 from gaddag import State, Arc, Gaddag, DELIMETER
 
 
@@ -122,17 +124,20 @@ class TestGaddag:
         assert isinstance(gaddag.root, State)
 
     def test_gaddag_initialization_with_wordlist_path(self):
-        """Test Gaddag initialization with wordlist path raises AttributeError due to missing words initialization"""
+        """Test Gaddag initialization with wordlist path"""
         with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt') as f:
             f.write("CAT\n")
             f.write("DOG\n")
             temp_path = f.name
 
         try:
-            # Note: There's a bug in gaddag.py where self.words is not initialized
-            # when wordlist_path is provided, causing AttributeError
-            with pytest.raises(AttributeError):
-                gaddag = Gaddag(wordlist_path=temp_path)
+            gaddag = Gaddag(wordlist_path=temp_path)
+            assert gaddag.wordlist_path == temp_path
+            assert isinstance(gaddag.root, State)
+            # Words should be loaded automatically
+            assert len(gaddag.words) == 2
+            assert "CAT" in gaddag.words
+            assert "DOG" in gaddag.words
         finally:
             os.unlink(temp_path)
 
@@ -255,3 +260,144 @@ class TestGaddagIntegration:
         assert isinstance(gaddag.root, State)
         # Root should have arcs for the words we added
         assert len(gaddag.root.arcs) > 0
+
+
+class TestGaddagCaching:
+    """Tests for Gaddag caching functionality"""
+
+    def test_cache_not_created_with_words_list(self):
+        """Test that cache is NOT created when using words list (only file wordlists are cached)"""
+        import shutil
+        from pathlib import Path
+        
+        # Clean up any existing cache
+        cache_dir = Path("temp")
+        if cache_dir.exists():
+            shutil.rmtree(cache_dir)
+        
+        words = ["CAT", "DOG", "BAT"]
+        
+        # Build with words list - should NOT create cache
+        gaddag1 = Gaddag(words=words)
+        gaddag1.build_gaddag()
+        
+        # Verify cache file was NOT created
+        cache_files = list(cache_dir.glob("gaddag_*.pkl"))
+        assert len(cache_files) == 0
+        
+        # Clean up
+        if cache_dir.exists():
+            shutil.rmtree(cache_dir)
+
+    def test_cache_save_and_load_with_wordlist_path(self):
+        """Test that cache is saved and can be loaded when using wordlist_path"""
+        import shutil
+        from pathlib import Path
+        
+        # Clean up any existing cache
+        cache_dir = Path("temp")
+        if cache_dir.exists():
+            shutil.rmtree(cache_dir)
+        
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt') as f:
+            f.write("CAT\n")
+            f.write("DOG\n")
+            f.write("BAT\n")
+            temp_path = f.name
+            temp_filename = Path(temp_path).stem
+
+        try:
+            # First build - should create cache
+            gaddag1 = Gaddag(wordlist_path=temp_path)
+            gaddag1.build_gaddag()
+            root1_arcs_count = len(gaddag1.root.arcs)
+            
+            # Verify cache file was created with filename-based key
+            expected_cache_file = cache_dir / f"gaddag_{temp_filename}.pkl"
+            assert expected_cache_file.exists()
+            
+            # Second build - should load from cache
+            gaddag2 = Gaddag(wordlist_path=temp_path)
+            gaddag2.build_gaddag()
+            root2_arcs_count = len(gaddag2.root.arcs)
+            
+            # Verify structure is the same
+            assert root1_arcs_count == root2_arcs_count
+        finally:
+            os.unlink(temp_path)
+            if cache_dir.exists():
+                shutil.rmtree(cache_dir)
+
+    def test_cache_different_filenames_creates_different_cache(self):
+        """Test that different wordlist filenames create different cache files"""
+        import shutil
+        from pathlib import Path
+        
+        # Clean up any existing cache
+        cache_dir = Path("temp")
+        if cache_dir.exists():
+            shutil.rmtree(cache_dir)
+        
+        # Create two different wordlist files
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt', prefix='wordlist1_') as f1:
+            f1.write("CAT\nDOG\n")
+            temp_path1 = f1.name
+            temp_filename1 = Path(temp_path1).stem
+        
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt', prefix='wordlist2_') as f2:
+            f2.write("BAT\nRAT\n")
+            temp_path2 = f2.name
+            temp_filename2 = Path(temp_path2).stem
+
+        try:
+            # Build with first wordlist
+            gaddag1 = Gaddag(wordlist_path=temp_path1)
+            gaddag1.build_gaddag()
+            
+            # Build with second wordlist
+            gaddag2 = Gaddag(wordlist_path=temp_path2)
+            gaddag2.build_gaddag()
+            
+            # Should have two different cache files based on filenames
+            expected_cache1 = cache_dir / f"gaddag_{temp_filename1}.pkl"
+            expected_cache2 = cache_dir / f"gaddag_{temp_filename2}.pkl"
+            assert expected_cache1.exists()
+            assert expected_cache2.exists()
+            assert expected_cache1 != expected_cache2
+        finally:
+            os.unlink(temp_path1)
+            os.unlink(temp_path2)
+            if cache_dir.exists():
+                shutil.rmtree(cache_dir)
+
+    def test_build_gaddag_without_cache(self):
+        """Test that build_gaddag can be called with use_cache=False"""
+        import shutil
+        from pathlib import Path
+        
+        # Clean up any existing cache
+        cache_dir = Path("temp")
+        if cache_dir.exists():
+            shutil.rmtree(cache_dir)
+        
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt') as f:
+            f.write("CAT\nDOG\n")
+            temp_path = f.name
+
+        try:
+            # Build with cache
+            gaddag1 = Gaddag(wordlist_path=temp_path)
+            gaddag1.build_gaddag(use_cache=True)
+            root1_arcs_count = len(gaddag1.root.arcs)
+            
+            # Build without cache (should rebuild)
+            gaddag2 = Gaddag(wordlist_path=temp_path)
+            gaddag2.build_gaddag(use_cache=False)
+            root2_arcs_count = len(gaddag2.root.arcs)
+            
+            # Both should have the same structure
+            assert root1_arcs_count == root2_arcs_count
+        finally:
+            os.unlink(temp_path)
+            if cache_dir.exists():
+                shutil.rmtree(cache_dir)

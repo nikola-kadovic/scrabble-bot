@@ -11,13 +11,9 @@ import quackle
 from gaddag import Gaddag
 
 def main():
-    # gaddad = Gaddag(wordlist_path=os.path.join(os.path.dirname(__file__), 'dictionary', 'nwl_2023.txt'))
-
-    # gaddad.load_wordlist()
-
-    gaddag = Gaddag(words=["CARE"])
-
-    gaddag.build_gaddag()
+    gaddag = Gaddag(wordlist_path=os.path.join(os.path.dirname(__file__), 'dictionary', 'nwl_2023.txt'))
+    # build_gaddag() will automatically check for cache and use it if available
+    gaddag.build_gaddag(use_cache=True)
 
     print("done")
 
