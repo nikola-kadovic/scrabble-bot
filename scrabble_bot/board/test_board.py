@@ -3,7 +3,9 @@ Basic tests for board.py using pytest
 """
 
 import pytest
-from board import Board, Letter, SquareType, Move, LETTER_SCORES
+from board.board import Board, Letter, SquareType
+from board.letter import LETTER_SCORES
+from board.move import Move
 
 
 class TestLetter:
@@ -150,7 +152,7 @@ class TestBoard:
     def test_get_valid_moves_not_implemented(self):
         """Test that get_valid_moves raises NotImplementedError"""
         board = Board()
-        from gaddag import Gaddag
+        from dictionary.gaddag import Gaddag
         gaddag = Gaddag(words=[])
         with pytest.raises(NotImplementedError):
             board.get_valid_moves(gaddag)
