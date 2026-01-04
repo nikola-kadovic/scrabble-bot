@@ -2,8 +2,14 @@ from dataclasses import dataclass
 from dictionary.gaddag import Gaddag
 from enum import Enum
 
+from typing import TypeAlias
+
 from letter import Letter
 from move import Move
+from scrabble_bot.board.board_utils import get_all_letters
+
+
+Point: TypeAlias = tuple[int, int]
 
 
 class SquareType(Enum):
@@ -26,7 +32,7 @@ class Board:
     The board class contains:
     - board state
     - common functions for interacting with the board.
-    - The location of special squares (e.g. triple word score, double word score, triple letter score, double letter score)
+    - The location of special squares(e.g. triple word score, double word score, triple letter score, double letter score)
     """
 
     ROWS = 15
@@ -35,14 +41,30 @@ class Board:
     def __init__(self):
         self.board: list[list[Letter]] = [
             [Letter.BLANK for _ in range(self.ROWS)] for _ in range(self.COLS)]
-        self.square_types: dict[tuple[int, int], SquareType] = {}
-        self.first_move = True
-        self.build_square_types()
 
-    def build_square_types(self):
+        self.square_types: dict[Point, SquareType] = {}
+        self._build_square_types()
+
+        self._first_move = True
+
+        # Represents points where we can start a move. Since we need at least one
+        # letter added, this is usually empty adjacent squares to words that have
+        # already been placed.
+        self._anchor_points: list[Point] = []
+
+        # Represents the set of letters that can be placed horizontally and
+        # vertically at a particular point, while making valid words on the adjacent axis.
+        # If there's no letters on the adjacent axis, the cross check includes all letters.
+        # Horizontal cross checks are for creating vertical words, and vice versa.
+        self._horizontal_cross_checks: list[list[set[Letter]]] = [
+            [get_all_letters() for _ in range(self.ROWS)] for _ in range(self.COLS)]
+        self._vertical_cross_checks: list[list[set[Letter]]] = [
+            [get_all_letters() for _ in range(self.ROWS)] for _ in range(self.COLS)]
+
+    def _build_square_types(self):
         """
-        Builds the square types for the board. We matched the square type distribution in the original game of Scrabble, see:
-        https://simple.wikipedia.org/wiki/Scrabble#/media/File:Scrabble_board_-_English.svg
+        Builds the square types for the board. Follows the standard special square distribution for Scrabble, see:
+        https: // simple.wikipedia.org / wiki / Scrabble  # /media/File:Scrabble_board_-_English.svg
         """
         # Start by setting all squares to default
         for row in range(self.ROWS):
@@ -96,10 +118,10 @@ class Board:
         """
         Prints the square types for the board with colors, along with a legend:
         - Default: .
-        - Double Word: w (yellow)
-        - Triple Word: W (red)
-        - Double Letter: l (light blue)
-        - Triple Letter: L (dark blue)
+        - Double Word: w(yellow)
+        - Triple Word: W(red)
+        - Double Letter: l(light blue)
+        - Triple Letter: L(dark blue)
         """
         # ANSI color codes
         RED = '\033[91m'  # Triple word
@@ -156,7 +178,7 @@ class Board:
         if starting_point[1] + len(word) > self.COLS:
             raise ValueError(f"Word {word} is too long to fit at starting point {starting_point}")
 
-        if self.first_move and (
+        if self._first_move and (
             starting_point[0] != 7 or not (
                 starting_point[1] <= 7 <= starting_point[1] +
                 len(word))):
@@ -172,8 +194,8 @@ class Board:
 
             self.board[starting_point[0]][starting_point[1] + i] = letter
 
-        if self.first_move:
-            self.first_move = False
+        if self._first_move:
+            self._first_move = False
 
         return True
 
@@ -181,7 +203,7 @@ class Board:
         if starting_point[0] + len(word) > self.ROWS:
             raise ValueError(f"Word {word} is too long to fit at starting point {starting_point}")
 
-        if self.first_move and (
+        if self._first_move and (
             starting_point[1] != 7 or not (
                 starting_point[0] <= 7 <= starting_point[0] +
                 len(word))):
@@ -197,8 +219,8 @@ class Board:
 
             self.board[starting_point[0] + i][starting_point[1]] = letter
 
-        if self.first_move:
-            self.first_move = False
+        if self._first_move:
+            self._first_move = False
 
         return True
 
