@@ -112,8 +112,10 @@ class Board:
     COLS = 15
 
     def __init__(self):
-        self.board = [[None for _ in range(self.ROWS)] for _ in range(self.COLS)]
+        self.board: list[list[Letter]] = [
+            [Letter.BLANK for _ in range(self.ROWS)] for _ in range(self.COLS)]
         self.square_types: dict[tuple[int, int], SquareType] = {}
+        self.first_move = True
         self.build_square_types()
 
     def build_square_types(self):
@@ -216,6 +218,69 @@ class Board:
     def get_valid_moves(self, dictionary: Gaddag) -> list[Move]:
         raise NotImplementedError("Not implemented")
 
+    def place_word(self, word: list[Letter], starting_point, vertical: bool) -> bool:
+        """
+        Places a word on the board.
+        """
+
+        if not (0 <= starting_point[0] < self.ROWS and 0 <= starting_point[1] < self.COLS):
+            raise ValueError(f"Starting point {starting_point} is out of bounds")
+
+        if vertical:
+            return self._place_word_vertically(word, starting_point)
+        else:
+            return self._place_word_horizontally(word, starting_point)
+
+    def _place_word_horizontally(self, word: list[Letter], starting_point: tuple[int, int]) -> bool:
+        if starting_point[1] + len(word) > self.COLS:
+            raise ValueError(f"Word {word} is too long to fit at starting point {starting_point}")
+
+        if self.first_move and (
+            starting_point[0] != 7 or not (
+                starting_point[1] <= 7 <= starting_point[1] +
+                len(word))):
+            raise ValueError(
+                f"First move must be on the center row, between columns 7 and {starting_point[1] + len(word)}")
+
+        for i, letter in enumerate(word):
+            if self.board[starting_point[0]][starting_point[1] +
+                                             i] != Letter.BLANK and self.board[starting_point[0]][starting_point[1] +
+                                                                                                  i] != letter:
+                raise ValueError(
+                    f"Letter {letter} at position {starting_point[0], starting_point[1] + i} is already occupied by {self.board[starting_point[0]][starting_point[1] + i]}")
+
+            self.board[starting_point[0]][starting_point[1] + i] = letter
+
+        if self.first_move:
+            self.first_move = False
+
+        return True
+
+    def _place_word_vertically(self, word: list[Letter], starting_point: tuple[int, int]) -> bool:
+        if starting_point[0] + len(word) > self.ROWS:
+            raise ValueError(f"Word {word} is too long to fit at starting point {starting_point}")
+
+        if self.first_move and (
+            starting_point[1] != 7 or not (
+                starting_point[0] <= 7 <= starting_point[0] +
+                len(word))):
+            raise ValueError(
+                f"First move must be on the center column, between rows 7 and {starting_point[0] + len(word)}")
+
+        for i, letter in enumerate(word):
+            if self.board[starting_point[0] +
+                          i][starting_point[1]] != Letter.BLANK and self.board[starting_point[0] +
+                                                                               i][starting_point[1]] != letter:
+                raise ValueError(
+                    f"Letter {letter} at position {starting_point[0] + i, starting_point[1]} is already occupied by {self.board[starting_point[0] + i][starting_point[1]]}")
+
+            self.board[starting_point[0] + i][starting_point[1]] = letter
+
+        if self.first_move:
+            self.first_move = False
+
+        return True
+
     def __str__(self):
         return "\n".join(
-            [" ".join([cell.letter if cell is not None else "." for cell in row]) for row in self.board])
+            [" ".join([cell.value for cell in row]) for row in self.board])
