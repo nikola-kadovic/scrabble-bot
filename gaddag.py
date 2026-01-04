@@ -68,7 +68,7 @@ class Arc:
 
 class Gaddag:
     """
-    A GADDAG is a reverse-prefix directed acyclic word graph that is used as a lexicon and word generator for the game of Scrabble.
+    A GADDAG is a reverse-prefix directed acyclic word graph that is used as a lexicon and as part of a word generator for the game of Scrabble.
     """
 
     def __init__(self, wordlist_path: Optional[str] = None, words: list[str] = []):
