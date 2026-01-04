@@ -6,15 +6,13 @@ bindings_path = os.path.join(os.path.dirname(__file__), 'quackle', 'bindings', '
 if bindings_path not in sys.path:
     sys.path.insert(0, bindings_path)
 
+from gaddag import Gaddag
 import quackle
 
 def main():
-    print("Hello from scrabble-bot!")
+    gaddad = Gaddag(wordlist_path=os.path.join(os.path.dirname(__file__), 'dictionary', 'nwl_2023.txt'))
 
-    dm = quackle.DataManager()
-
-    dm.setAppDataDirectory("data")
-
+    gaddad.load_wordlist()
 
 if __name__ == "__main__":
     main()
