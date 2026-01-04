@@ -43,10 +43,11 @@ class Board:
     - The location of special squares (e.g. triple word score, double word score, triple letter score, double letter score)
     """
 
-    def __init__(self, rows: int, cols: int):
-        self.rows = rows
-        self.cols = cols
-        self.board = [[None for _ in range(rows)] for _ in range(cols)]
+    ROWS = 15
+    COLS = 15
+
+    def __init__(self):
+        self.board = [[None for _ in range(self.ROWS)] for _ in range(self.COLS)]
         self.square_types: dict[tuple[int, int], SquareType] = {}
         self.build_square_types()
 
@@ -55,22 +56,26 @@ class Board:
         Builds the square types for the board. We matched the square type distribution in the original game of Scrabble, see:
         https://simple.wikipedia.org/wiki/Scrabble#/media/File:Scrabble_board_-_English.svg
         """
+        # Start by setting all squares to default
+        for row in range(self.ROWS):
+            for col in range(self.COLS):
+                self.square_types[(row, col)] = SquareType.DEFAULT
+
+        # Build triple letter squares:
+        for i in range(1, self.ROWS, 4):
+            for j in range(1, self.COLS, 4):
+                self.square_types[(i, j)] = SquareType.TRIPLE_LETTER
 
         # Build double word squares (top and bottom diagonals):
         for i in range(1, 5):
             self.square_types[(i, i)] = SquareType.DOUBLE_WORD
-            self.square_types[(i, self.cols - i - 1)] = SquareType.DOUBLE_WORD
-            self.square_types[(self.rows - i - 1, i)] = SquareType.DOUBLE_WORD
-            self.square_types[(self.rows - i - 1, self.cols - i - 1)] = SquareType.DOUBLE_WORD
-
-        # Build triple letter squares:
-        for i in range(1, self.rows, 4):
-            for j in range(1, self.cols, 4):
-                self.square_types[(i, j)] = SquareType.TRIPLE_LETTER
+            self.square_types[(i, self.COLS - i - 1)] = SquareType.DOUBLE_WORD
+            self.square_types[(self.ROWS - i - 1, i)] = SquareType.DOUBLE_WORD
+            self.square_types[(self.ROWS - i - 1, self.COLS - i - 1)] = SquareType.DOUBLE_WORD
 
         # Build triple word squares:
-        for i in range(0, self.rows, 7):
-            for j in range(0, self.cols, 7):
+        for i in range(0, self.ROWS, 7):
+            for j in range(0, self.COLS, 7):
                 self.square_types[(i, j)] = SquareType.TRIPLE_WORD
         self.square_types[(7, 7)] = SquareType.DEFAULT
 
@@ -78,40 +83,70 @@ class Board:
         for (qx, qy) in [(1, 1), (1, -1), (-1, 1), (-1, -1)]:
             # use the symmetry from each quadrant to build the squares
             self.square_types[(
-                (qx * 0 + self.rows if qx == -1 else 0),
-                (qy * 3 + self.cols if qy == -1 else 0))] = SquareType.DOUBLE_LETTER
+                (qx * 0 + (self.ROWS - 1 if qx == -1 else 0)),
+                (qy * 3 + (self.COLS - 1 if qy == -1 else 0)))] = SquareType.DOUBLE_LETTER
             self.square_types[(
-                (qx * 3 + self.rows if qx == -1 else 0),
-                (qy * 0 + self.cols if qy == -1 else 0))] = SquareType.DOUBLE_LETTER
+                (qx * 3 + (self.ROWS - 1 if qx == -1 else 0)),
+                (qy * 0 + (self.COLS - 1 if qy == -1 else 0)))] = SquareType.DOUBLE_LETTER
             self.square_types[(
-                (qx * 2 + self.rows if qx == -1 else 0),
-                (qy * 6 + self.cols if qy == -1 else 0))] = SquareType.DOUBLE_LETTER
+                (qx * 2 + (self.ROWS - 1 if qx == -1 else 0)),
+                (qy * 6 + (self.COLS - 1 if qy == -1 else 0)))] = SquareType.DOUBLE_LETTER
             self.square_types[(
-                (qx * 6 + self.rows if qx == -1 else 0),
-                (qy * 2 + self.cols if qy == -1 else 0))] = SquareType.DOUBLE_LETTER
+                (qx * 6 + (self.ROWS - 1 if qx == -1 else 0)),
+                (qy * 2 + (self.COLS - 1 if qy == -1 else 0)))] = SquareType.DOUBLE_LETTER
+            self.square_types[(
+                (qx * 6 + (self.ROWS - 1 if qx == -1 else 0)),
+                (qy * 6 + (self.COLS - 1 if qy == -1 else 0)))] = SquareType.DOUBLE_LETTER
+            self.square_types[(
+                (qx * 3 + (self.ROWS - 1 if qx == -1 else 0)),
+                (qy * 7 + (self.COLS - 1 if qy == -1 else 0)))] = SquareType.DOUBLE_LETTER
+            self.square_types[(
+                (qx * 7 + (self.ROWS - 1 if qx == -1 else 0)),
+                (qy * 3 + (self.COLS - 1 if qy == -1 else 0)))] = SquareType.DOUBLE_LETTER
 
     def print_square_types(self):
         """
-        Prints the square types for the board, along with a legend:
+        Prints the square types for the board with colors, along with a legend:
         - Default: .
-        - Double Word: w
-        - Triple Word: W
-        - Double Letter: l
-        - Triple Letter: L
+        - Double Word: w (yellow)
+        - Triple Word: W (red)
+        - Double Letter: l (light blue)
+        - Triple Letter: L (dark blue)
         """
+        # ANSI color codes
+        RED = '\033[91m'  # Triple word
+        YELLOW = '\033[93m'  # Double word
+        LIGHT_BLUE = '\033[96m'  # Double letter
+        DARK_BLUE = '\033[94m'  # Triple letter
+        RESET = '\033[0m'  # Reset color
+
+        def get_color(square_type: SquareType) -> str:
+            """Get the color code for a square type"""
+            if square_type == SquareType.TRIPLE_WORD:
+                return RED
+            elif square_type == SquareType.DOUBLE_WORD:
+                return YELLOW
+            elif square_type == SquareType.DOUBLE_LETTER:
+                return LIGHT_BLUE
+            elif square_type == SquareType.TRIPLE_LETTER:
+                return DARK_BLUE
+            else:
+                return RESET
 
         print("Square Types:")
         print("-------------")
-        for row in range(self.rows):
-            for col in range(self.cols):
-                print(self.square_types[(row, col)], end=" ")
+        for row in range(self.ROWS):
+            for col in range(self.COLS):
+                square_type = self.square_types[(row, col)]
+                color = get_color(square_type)
+                print(f"{color}{square_type}{RESET}", end=" ")
             print()
         print("-------------")
         print("Legend:")
-        print("w: Double Word")
-        print("W: Triple Word")
-        print("l: Double Letter")
-        print("L: Triple Letter")
+        print(f"{YELLOW}w{RESET}: Double Word")
+        print(f"{RED}W{RESET}: Triple Word")
+        print(f"{LIGHT_BLUE}l{RESET}: Double Letter")
+        print(f"{DARK_BLUE}L{RESET}: Triple Letter")
 
     def get_valid_moves(self, gaddag: Gaddag) -> list[Move]:
         raise NotImplementedError("Not implemented")
