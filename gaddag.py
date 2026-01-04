@@ -64,7 +64,7 @@ class Gaddag:
 
     def load_wordlist(self):
         with open(self.wordlist_path, 'r') as file:
-            for idx, line in file:
+            for idx, line in enumerate(file):
                 try:
                     word = line.strip().split(' ')[0]
                 except IndexError:
