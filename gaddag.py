@@ -22,24 +22,27 @@ class State:
     """
     def __init__(self, arcs: list[tuple[str, Arc]] = []):
         self.arcs:dict[str, Arc] = dict(arcs)
+        self.letters_that_make_a_word: set[str] = set()
     
     def add_arc(self, letter: str, destination_state: "Optional[State]" = None) -> State:
         if destination_state is None:
             destination_state = State()
 
         if letter not in self.arcs:
-            self.arcs[letter] = Arc(letters_that_make_a_word=set(), destination_state=destination_state)
+            self.arcs[letter] = Arc(destination_state=destination_state)
 
         return self.arcs[letter].destination_state 
 
     def add_ending_arc(self, letter: str, ending_letter) -> State:
         if letter not in self.arcs:
-            self.arcs[letter] = Arc(
-                letters_that_make_a_word=set(ending_letter), destination_state=State())
-        else:
-            self.arcs[letter].add_letter_to_set(ending_letter)
+            self.arcs[letter] = Arc(destination_state=State())
+
+        self.arcs[letter].destination_state.add_ending_letter(ending_letter)
 
         return self.arcs[letter].destination_state 
+    
+    def add_ending_letter(self, letter: str):
+        self.letters_that_make_a_word.add(letter)
 
 class Arc:
     """
@@ -47,19 +50,19 @@ class Arc:
     prefix to make a word.
     """
     def __init__(self, letters_that_make_a_word: set[str] = set(), destination_state: State = State()):
-        self.letters_that_make_a_word = letters_that_make_a_word
         self.destination_state = destination_state
-    
-    def add_letter_to_set(self, letter: str):
-        self.letters_that_make_a_word.add(letter)
 
 class Gaddag:
     """
     A GADDAG is a reverse-prefix directed acyclic word graph that is used as a lexicon and word generator for the game of Scrabble.
     """
-    def __init__(self, wordlist_path: str):
-        self.wordlist_path = wordlist_path
-        self.words = []
+    def __init__(self, wordlist_path: Optional[str] = None, words: list[str] = []):
+        if wordlist_path is not None:
+            self.wordlist_path = wordlist_path
+            self.load_wordlist()
+        else:
+            self.words = words
+
         self.root = State()
 
     def load_wordlist(self):
@@ -80,21 +83,21 @@ class Gaddag:
     def add_word(self, word: str):
         current_state = self.root
         # Add arcs for word[n..1] 
-        for i in range(len(word)-1, 2, -1):
+        for i in range(len(word)-1, 1, -1):
             current_state = current_state.add_arc(word[i])
         current_state.add_ending_arc(word[1], word[0])
 
         current_state = self.root
         # Add arcs for word[n-1..1]◇word[n]
-        for i in range(len(word)-2, 0, -1):
+        for i in range(len(word)-2, -1, -1):
             current_state = current_state.add_arc(word[i])
         current_state = current_state.add_ending_arc(DELIMETER, word[-1])
 
         # Add all other reverse prefixes word[i..0]◇ rev(word[i+1..n]), i = n-2, n-3, ..., 2
-        for m in range(len(word)-2, 0, -1):
+        for m in range(len(word)-3, -1, -1):
             destination = current_state
             current_state = self.root
-            for i in range(m-1, 0, -1):
+            for i in range(m, -1, -1):
                 current_state = current_state.add_arc(word[i])
             current_state = current_state.add_arc(DELIMETER)
-            current_state.add_arc(word[m], destination)
+            current_state.add_arc(word[m+1], destination)
