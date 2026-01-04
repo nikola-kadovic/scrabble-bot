@@ -12,6 +12,7 @@ https://users.cs.northwestern.edu/~robby/uc-courses/22001-2008-winter/faster-scr
 """
 
 from __future__ import annotations
+from dataclasses import dataclass
 from typing import Optional
 import pickle
 import os
@@ -19,6 +20,7 @@ from pathlib import Path
 
 DELIMETER = "◇"
 
+@dataclass
 class State: 
     """
     A state specifies the arcs leaving it and their associated letters.
@@ -47,6 +49,7 @@ class State:
     def add_ending_letter(self, letter: str):
         self.letters_that_make_a_word.add(letter)
 
+@dataclass
 class Arc:
     """
     An arc specifies the destination state and the set of letters that can be added to the current 
