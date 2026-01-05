@@ -230,6 +230,22 @@ class Board:
 
         return True
 
+    def _update_horizontal_cross_checks_tmp(self, point: Point):
+        x, y = point
+        for letter in self._horizontal_cross_checks[x][y]:
+            first_letter = self._dictionary.root.get_next_state(str(letter))
+
+            if not first_letter:
+                raise RuntimeError("This should never happen")
+
+            if x == 0 or self.board[x - 1][y] == Letter.BLANK:
+                current_state = first_letter.get_next_state(DELIMETER)
+
+            go_left = True
+
+            while not current_state and 0 <= y < self.COLS:
+                pass
+
     def _update_horizontal_cross_checks(self, point: Point):
         """
         Updates the horizontal cross checks of a point that was just filled.
