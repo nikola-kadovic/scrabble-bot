@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import TypeAlias
 
-from scrabble_bot.gaddag.gaddag import Gaddag
+from scrabble_bot.gaddag.gaddag import DELIMETER, Gaddag
 from scrabble_bot.board.letter import Letter, get_all_letters
 from scrabble_bot.board.move import Move
 
@@ -160,7 +160,7 @@ class Board:
     def get_valid_moves(self) -> list[Move]:
         raise NotImplementedError("Not implemented")
 
-    def place_word(self, word: list[Letter], starting_point, vertical: bool) -> bool:
+    def place_word(self, word: list[Letter], starting_point: Point, vertical: bool) -> bool:
         """
         Places a word on the board. May raise a ValueError if the move is invalid.
         """
@@ -173,55 +173,157 @@ class Board:
         else:
             return self._place_word_horizontally(word, starting_point)
 
-    def _place_word_horizontally(self, word: list[Letter], starting_point: tuple[int, int]) -> bool:
-        if starting_point[1] + len(word) > self.COLS:
-            raise ValueError(f"Word {word} is too long to fit at starting point {starting_point}")
+    def _place_word_horizontally(self, word: list[Letter], sp: Point) -> bool:
+        if sp[1] + len(word) > self.COLS:
+            raise ValueError(f"Word {word} is too long to fit at starting point {sp}")
 
-        if self._first_move and (
-            starting_point[0] != 7 or not (
-                starting_point[1] <= 7 <= starting_point[1] +
-                len(word))):
+        if self._first_move and (sp[0] != 7 or not (sp[1] <= 7 <= sp[1] + len(word))):
             raise ValueError(
-                f"First move must be on the center row, between columns 7 and {starting_point[1] + len(word)}")
+                f"First move must be on the center row, between columns 7 and {sp[1] + len(word)}")
 
         for i, letter in enumerate(word):
-            if self.board[starting_point[0]][starting_point[1] +
-                                             i] != Letter.BLANK and self.board[starting_point[0]][starting_point[1] +
-                                                                                                  i] != letter:
+            x, y = sp[0], sp[1] + i
+            if self.board[x][y] != Letter.BLANK and self.board[x][y] != letter:
                 raise ValueError(
-                    f"Letter {letter} at position {starting_point[0], starting_point[1] + i} is already occupied by {self.board[starting_point[0]][starting_point[1] + i]}")
+                    f"Letter {letter} at position {x, y} is already occupied by {self.board[x][y]}")
 
-            self.board[starting_point[0]][starting_point[1] + i] = letter
+            self.board[x][y] = letter
+            # Update the vertical cross checks for the space we just filled
+            self._update_vertical_cross_checks((x, y))
+
+            if i == 0 or i == len(word) - 1:
+                self._update_horizontal_cross_checks((x, y))
 
         if self._first_move:
             self._first_move = False
 
         return True
 
-    def _place_word_vertically(self, word: list[Letter], starting_point: tuple[int, int]) -> bool:
-        if starting_point[0] + len(word) > self.ROWS:
-            raise ValueError(f"Word {word} is too long to fit at starting point {starting_point}")
+    def _place_word_vertically(self, word: list[Letter], sp: Point) -> bool:
+        if sp[0] + len(word) > self.ROWS:
+            raise ValueError(f"Word {word} is too long to fit at starting point {sp}")
 
-        if self._first_move and (
-            starting_point[1] != 7 or not (
-                starting_point[0] <= 7 <= starting_point[0] +
-                len(word))):
+        if self._first_move and (sp[1] != 7 or not (sp[0] <= 7 <= sp[0] + len(word))):
             raise ValueError(
-                f"First move must be on the center column, between rows 7 and {starting_point[0] + len(word)}")
+                f"First move must be on the center column, between rows 7 and {sp[0] + len(word)}")
 
         for i, letter in enumerate(word):
-            if self.board[starting_point[0] +
-                          i][starting_point[1]] != Letter.BLANK and self.board[starting_point[0] +
-                                                                               i][starting_point[1]] != letter:
+            x, y = sp[0] + i, sp[1]
+            if self.board[x][y] != Letter.BLANK and self.board[x][y] != letter:
                 raise ValueError(
-                    f"Letter {letter} at position {starting_point[0] + i, starting_point[1]} is already occupied by {self.board[starting_point[0] + i][starting_point[1]]}")
+                    f"Letter {letter} at position {x, y} is already occupied by {self.board[x][y]}")
 
-            self.board[starting_point[0] + i][starting_point[1]] = letter
+            self.board[x][y] = letter
+            # Update the horizontal cross checks for the space we just filled
+            self._update_horizontal_cross_checks((x, y))
+
+            if i == 0 or i == len(word) - 1:
+                self._update_vertical_cross_checks((x, y))
+
+            # Update the cross checks for the space we just filled - trivially, only
+            # that letter can be placed there.
+            self._vertical_cross_checks[x][y] = set([letter])
+            self._horizontal_cross_checks[x][y] = set([letter])
 
         if self._first_move:
             self._first_move = False
 
         return True
+
+    def _update_horizontal_cross_checks(self, point: Point):
+        """
+        Updates the horizontal cross checks of a point that was just filled.
+
+        The following examples help illustrate the concept - not that we only consider the left neighbor in the examples, but the same logic applies to the right neighbor.
+
+        ### Example 1:
+        ```
+        . . . . .
+        . . A . .
+        . x B . .
+        . . S . .
+        . . . . .
+        ```
+
+        - If we just filled the letter B, we need to find all the letters x that make xB a valid word.
+
+        ### Example 2:
+        . . . . .
+        . . A . .
+        . x B A R
+        . . S . .
+        . . . . .
+
+        - If we just filled the letter B, we need to find all the letters x that make xBAR a valid word.
+
+        ### Edge case:
+
+        . . . . . . .
+        . . . . . . .
+        P A x A B L E
+        . . . . . . .
+        . . . . . . .
+
+        - If we just filled out PA, we need to find all the letters x that make PAxABLE a valid word.
+        """
+
+        x, y = point
+        hy1, hy2 = y - 1, y + 1
+
+        if 0 <= hy1 < self.COLS:
+            for letter in self._horizontal_cross_checks[x][hy1]:
+                # Test to see if the word is valid by querying the dictionary
+                first_letter = self._dictionary.root.get_next_state(str(letter))
+
+                if not first_letter:
+                    raise RuntimeError("This should never happen")
+
+                # Add delimiter to start going right
+                current_state = first_letter.get_next_state(DELIMETER)
+                if not current_state:
+                    self._horizontal_cross_checks[x][hy1].remove(letter)
+                    continue
+
+                idx = y
+
+                while current_state and idx < self.COLS and self.board[x][idx] == Letter.BLANK:
+                    current_state = current_state.get_next_state(str(self.board[x][idx]))
+
+                    if not current_state:
+                        self._horizontal_cross_checks[x][idx].remove(letter)
+                        break
+
+                    idx += 1
+
+                if current_state and letter not in current_state.letters_that_make_a_word:
+                    self._horizontal_cross_checks[x][idx].remove(letter)
+                    continue
+
+        if 0 <= hy2 < self.COLS:
+            for letter in self._horizontal_cross_checks[x][hy2]:
+                # Test to see if the word is valid by querying the dictionary
+                first_letter = self._dictionary.root.get_next_state(str(letter))
+
+                if not first_letter:
+                    raise RuntimeError("This should never happen")
+
+                idx = y
+
+                while current_state and idx >= 0 and self.board[x][idx] == Letter.BLANK:
+                    current_state = current_state.get_next_state(str(self.board[x][idx]))
+
+                    if not current_state:
+                        self._horizontal_cross_checks[x][idx].remove(letter)
+                        break
+
+                    idx -= 1
+
+                if current_state and letter not in current_state.letters_that_make_a_word:
+                    self._horizontal_cross_checks[x][idx].remove(letter)
+                    continue
+
+    def _update_vertical_cross_checks(self, point: Point):
+        pass
 
     def __str__(self):
         return "\n".join(

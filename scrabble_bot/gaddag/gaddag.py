@@ -18,6 +18,8 @@ import pickle
 import os
 from pathlib import Path
 
+from scrabble_bot.board.letter import Letter
+
 DELIMETER = "◇"
 
 
@@ -50,6 +52,19 @@ class State:
 
     def add_ending_letter(self, letter: str):
         self.letters_that_make_a_word.add(letter)
+
+    def get_next_state(self, letter: str) -> Optional[State]:
+        """
+        Gets the next state after a given letter.
+
+        Returns:
+            - The next state after the given letter, or None if the letter is not a valid prefix.
+        """
+
+        if letter not in self.arcs:
+            return None
+
+        return self.arcs[letter].destination_state
 
 
 @dataclass
