@@ -5,6 +5,9 @@ from scrabble_bot.gaddag.gaddag import DELIMETER, Gaddag
 from scrabble_bot.board.letter import Letter, get_all_letters
 from scrabble_bot.board.move import Move
 
+# The nubmer of rows and columns on the board
+BOARD_ROWS = 15
+BOARD_COLS = 15
 
 Point: TypeAlias = tuple[int, int]
 
@@ -32,12 +35,9 @@ class Board:
     - The location of special squares(e.g. triple word score, double word score, triple letter score, double letter score)
     """
 
-    ROWS = 15
-    COLS = 15
-
     def __init__(self, dictionary: Gaddag):
         self.board: list[list[Letter]] = [
-            [Letter.BLANK for _ in range(self.ROWS)] for _ in range(self.COLS)]
+            [Letter.BLANK for _ in range(BOARD_ROWS)] for _ in range(BOARD_COLS)]
 
         self._dictionary = dictionary
 
@@ -56,9 +56,9 @@ class Board:
         # If there's no letters on the adjacent axis, the cross check includes all letters.
         # Horizontal cross checks are for creating vertical words, and vice versa.
         self._horizontal_cross_checks: list[list[set[Letter]]] = [
-            [get_all_letters() for _ in range(self.ROWS)] for _ in range(self.COLS)]
+            [get_all_letters() for _ in range(BOARD_ROWS)] for _ in range(BOARD_COLS)]
         self._vertical_cross_checks: list[list[set[Letter]]] = [
-            [get_all_letters() for _ in range(self.ROWS)] for _ in range(self.COLS)]
+            [get_all_letters() for _ in range(BOARD_ROWS)] for _ in range(BOARD_COLS)]
 
     def _build_square_types(self):
         """
@@ -66,25 +66,25 @@ class Board:
         https: // simple.wikipedia.org / wiki / Scrabble  # /media/File:Scrabble_board_-_English.svg
         """
         # Start by setting all squares to default
-        for row in range(self.ROWS):
-            for col in range(self.COLS):
+        for row in range(BOARD_ROWS):
+            for col in range(BOARD_COLS):
                 self.square_types[(row, col)] = SquareType.DEFAULT
 
         # Build triple letter squares:
-        for i in range(1, self.ROWS, 4):
-            for j in range(1, self.COLS, 4):
+        for i in range(1, BOARD_ROWS, 4):
+            for j in range(1, BOARD_COLS, 4):
                 self.square_types[(i, j)] = SquareType.TRIPLE_LETTER
 
         # Build double word squares (top and bottom diagonals):
         for i in range(1, 5):
             self.square_types[(i, i)] = SquareType.DOUBLE_WORD
-            self.square_types[(i, self.COLS - i - 1)] = SquareType.DOUBLE_WORD
-            self.square_types[(self.ROWS - i - 1, i)] = SquareType.DOUBLE_WORD
-            self.square_types[(self.ROWS - i - 1, self.COLS - i - 1)] = SquareType.DOUBLE_WORD
+            self.square_types[(i, BOARD_COLS - i - 1)] = SquareType.DOUBLE_WORD
+            self.square_types[(BOARD_ROWS - i - 1, i)] = SquareType.DOUBLE_WORD
+            self.square_types[(BOARD_ROWS - i - 1, BOARD_COLS - i - 1)] = SquareType.DOUBLE_WORD
 
         # Build triple word squares:
-        for i in range(0, self.ROWS, 7):
-            for j in range(0, self.COLS, 7):
+        for i in range(0, BOARD_ROWS, 7):
+            for j in range(0, BOARD_COLS, 7):
                 self.square_types[(i, j)] = SquareType.TRIPLE_WORD
         self.square_types[(7, 7)] = SquareType.DEFAULT
 
@@ -92,26 +92,26 @@ class Board:
         for (qx, qy) in [(1, 1), (1, -1), (-1, 1), (-1, -1)]:
             # use the symmetry from each quadrant to build the squares
             self.square_types[(
-                (qx * 0 + (self.ROWS - 1 if qx == -1 else 0)),
-                (qy * 3 + (self.COLS - 1 if qy == -1 else 0)))] = SquareType.DOUBLE_LETTER
+                (qx * 0 + (BOARD_ROWS - 1 if qx == -1 else 0)),
+                (qy * 3 + (BOARD_COLS - 1 if qy == -1 else 0)))] = SquareType.DOUBLE_LETTER
             self.square_types[(
-                (qx * 3 + (self.ROWS - 1 if qx == -1 else 0)),
-                (qy * 0 + (self.COLS - 1 if qy == -1 else 0)))] = SquareType.DOUBLE_LETTER
+                (qx * 3 + (BOARD_ROWS - 1 if qx == -1 else 0)),
+                (qy * 0 + (BOARD_COLS - 1 if qy == -1 else 0)))] = SquareType.DOUBLE_LETTER
             self.square_types[(
-                (qx * 2 + (self.ROWS - 1 if qx == -1 else 0)),
-                (qy * 6 + (self.COLS - 1 if qy == -1 else 0)))] = SquareType.DOUBLE_LETTER
+                (qx * 2 + (BOARD_ROWS - 1 if qx == -1 else 0)),
+                (qy * 6 + (BOARD_COLS - 1 if qy == -1 else 0)))] = SquareType.DOUBLE_LETTER
             self.square_types[(
-                (qx * 6 + (self.ROWS - 1 if qx == -1 else 0)),
-                (qy * 2 + (self.COLS - 1 if qy == -1 else 0)))] = SquareType.DOUBLE_LETTER
+                (qx * 6 + (BOARD_ROWS - 1 if qx == -1 else 0)),
+                (qy * 2 + (BOARD_COLS - 1 if qy == -1 else 0)))] = SquareType.DOUBLE_LETTER
             self.square_types[(
-                (qx * 6 + (self.ROWS - 1 if qx == -1 else 0)),
-                (qy * 6 + (self.COLS - 1 if qy == -1 else 0)))] = SquareType.DOUBLE_LETTER
+                (qx * 6 + (BOARD_ROWS - 1 if qx == -1 else 0)),
+                (qy * 6 + (BOARD_COLS - 1 if qy == -1 else 0)))] = SquareType.DOUBLE_LETTER
             self.square_types[(
-                (qx * 3 + (self.ROWS - 1 if qx == -1 else 0)),
-                (qy * 7 + (self.COLS - 1 if qy == -1 else 0)))] = SquareType.DOUBLE_LETTER
+                (qx * 3 + (BOARD_ROWS - 1 if qx == -1 else 0)),
+                (qy * 7 + (BOARD_COLS - 1 if qy == -1 else 0)))] = SquareType.DOUBLE_LETTER
             self.square_types[(
-                (qx * 7 + (self.ROWS - 1 if qx == -1 else 0)),
-                (qy * 3 + (self.COLS - 1 if qy == -1 else 0)))] = SquareType.DOUBLE_LETTER
+                (qx * 7 + (BOARD_ROWS - 1 if qx == -1 else 0)),
+                (qy * 3 + (BOARD_COLS - 1 if qy == -1 else 0)))] = SquareType.DOUBLE_LETTER
 
     def print_square_types(self):
         """
@@ -144,8 +144,8 @@ class Board:
 
         print("Square Types:")
         print("-------------")
-        for row in range(self.ROWS):
-            for col in range(self.COLS):
+        for row in range(BOARD_ROWS):
+            for col in range(BOARD_COLS):
                 square_type = self.square_types[(row, col)]
                 color = get_color(square_type)
                 print(f"{color}{square_type}{RESET}", end=" ")
@@ -165,7 +165,9 @@ class Board:
         Places a word on the board. May raise a ValueError if the move is invalid.
         """
 
-        if not (0 <= starting_point[0] < self.ROWS and 0 <= starting_point[1] < self.COLS):
+        x, y = starting_point
+
+        if not (0 <= x < BOARD_ROWS and 0 <= y < BOARD_COLS):
             raise ValueError(f"Starting point {starting_point} is out of bounds")
 
         if vertical:
@@ -174,7 +176,7 @@ class Board:
             return self._place_word_horizontally(word, starting_point)
 
     def _place_word_horizontally(self, word: list[Letter], sp: Point) -> bool:
-        if sp[1] + len(word) > self.COLS:
+        if sp[1] + len(word) > BOARD_COLS:
             raise ValueError(f"Word {word} is too long to fit at starting point {sp}")
 
         if self._first_move and (sp[0] != 7 or not (sp[1] <= 7 <= sp[1] + len(word))):
@@ -188,11 +190,19 @@ class Board:
                     f"Letter {letter} at position {x, y} is already occupied by {self.board[x][y]}")
 
             self.board[x][y] = letter
-            # Update the vertical cross checks for the space we just filled
-            self._update_vertical_cross_checks((x, y))
 
-            if i == 0 or i == len(word) - 1:
-                self._update_horizontal_cross_checks((x, y))
+            # Update cross checks for the space we just filled
+            if in_bounds((x - 1, y)):
+                self._update_vertical_cross_checks((x - 1, y))
+
+            if in_bounds((x + 1, y)):
+                self._update_vertical_cross_checks((x + 1, y))
+
+            if i == 0 and in_bounds((x, y - 1)):
+                self._update_horizontal_cross_checks((x, y - 1))
+
+            if i == len(word) - 1 and in_bounds((x, y + 1)):
+                self._update_horizontal_cross_checks((x, y + 1))
 
         if self._first_move:
             self._first_move = False
@@ -200,7 +210,7 @@ class Board:
         return True
 
     def _place_word_vertically(self, word: list[Letter], sp: Point) -> bool:
-        if sp[0] + len(word) > self.ROWS:
+        if sp[0] + len(word) > BOARD_ROWS:
             raise ValueError(f"Word {word} is too long to fit at starting point {sp}")
 
         if self._first_move and (sp[1] != 7 or not (sp[0] <= 7 <= sp[0] + len(word))):
@@ -214,133 +224,98 @@ class Board:
                     f"Letter {letter} at position {x, y} is already occupied by {self.board[x][y]}")
 
             self.board[x][y] = letter
-            # Update the horizontal cross checks for the space we just filled
-            self._update_horizontal_cross_checks((x, y))
 
-            if i == 0 or i == len(word) - 1:
-                self._update_vertical_cross_checks((x, y))
+            # Update cross checks for the space we just filled
+            if in_bounds((x, y - 1)):
+                self._update_horizontal_cross_checks((x, y - 1))
 
-            # Update the cross checks for the space we just filled - trivially, only
-            # that letter can be placed there.
-            self._vertical_cross_checks[x][y] = set([letter])
-            self._horizontal_cross_checks[x][y] = set([letter])
+            if in_bounds((x, y + 1)):
+                self._update_horizontal_cross_checks((x, y + 1))
 
-        if self._first_move:
-            self._first_move = False
+            if i == 0 and in_bounds((x - 1, y)):
+                self._update_vertical_cross_checks((x - 1, y))
+
+            if i == len(word) - 1 and in_bounds((x + 1, y)):
+                self._update_vertical_cross_checks((x + 1, y))
+
+            if self._first_move:
+                self._first_move = False
 
         return True
 
-    def _update_horizontal_cross_checks_tmp(self, point: Point):
-        x, y = point
-        for letter in self._horizontal_cross_checks[x][y]:
-            first_letter = self._dictionary.root.get_next_state(str(letter))
-
-            if not first_letter:
-                raise RuntimeError("This should never happen")
-
-            if x == 0 or self.board[x - 1][y] == Letter.BLANK:
-                current_state = first_letter.get_next_state(DELIMETER)
-
-            go_left = True
-
-            while not current_state and 0 <= y < self.COLS:
-                pass
-
     def _update_horizontal_cross_checks(self, point: Point):
         """
-        Updates the horizontal cross checks of a point that was just filled.
-
-        The following examples help illustrate the concept - not that we only consider the left neighbor in the examples, but the same logic applies to the right neighbor.
-
-        ### Example 1:
-        ```
-        . . . . .
-        . . A . .
-        . x B . .
-        . . S . .
-        . . . . .
-        ```
-
-        - If we just filled the letter B, we need to find all the letters x that make xB a valid word.
-
-        ### Example 2:
-        . . . . .
-        . . A . .
-        . x B A R
-        . . S . .
-        . . . . .
-
-        - If we just filled the letter B, we need to find all the letters x that make xBAR a valid word.
-
-        ### Edge case:
-
-        . . . . . . .
-        . . . . . . .
-        P A x A B L E
-        . . . . . . .
-        . . . . . . .
-
-        - If we just filled out PA, we need to find all the letters x that make PAxABLE a valid word.
+        Updates the horizontal cross checks for a given point.
+        A cross check is a set of letters that can be placed at a given point, while making valid words on the adjacent axis.
+        If there's no letters on the adjacent axis, the cross check includes all letters.
+        Horizontal cross checks are for creating vertical words, and vice versa.
         """
-
         x, y = point
-        hy1, hy2 = y - 1, y + 1
+        for letter in self._horizontal_cross_checks[x][y]:
+            state = self._dictionary.root.get_next_state(str(letter))
 
-        if 0 <= hy1 < self.COLS:
-            for letter in self._horizontal_cross_checks[x][hy1]:
-                # Test to see if the word is valid by querying the dictionary
-                first_letter = self._dictionary.root.get_next_state(str(letter))
+            if not state:
+                raise RuntimeError("This should never happen")
 
-                if not first_letter:
-                    raise RuntimeError("This should never happen")
+            go_left = True
+            idx = y
 
-                # Add delimiter to start going right
-                current_state = first_letter.get_next_state(DELIMETER)
-                if not current_state:
-                    self._horizontal_cross_checks[x][hy1].remove(letter)
+            while state and 0 <= idx < BOARD_COLS:
+
+                if y == 0 or (go_left and self.board[x][idx] == Letter.BLANK):
+                    state = state.get_next_state(DELIMETER)
+                    go_left = False
+                    idx = y + 1
                     continue
 
-                idx = y
+                if not go_left and self.board[x][idx] == Letter.BLANK:
+                    break
 
-                while current_state and idx < self.COLS and self.board[x][idx] == Letter.BLANK:
-                    current_state = current_state.get_next_state(str(self.board[x][idx]))
+                state = state.get_next_state(str(self.board[x][idx]))
 
-                    if not current_state:
-                        self._horizontal_cross_checks[x][idx].remove(letter)
-                        break
+                idx += -1 if go_left else 1
 
-                    idx += 1
-
-                if current_state and letter not in current_state.letters_that_make_a_word:
-                    self._horizontal_cross_checks[x][idx].remove(letter)
-                    continue
-
-        if 0 <= hy2 < self.COLS:
-            for letter in self._horizontal_cross_checks[x][hy2]:
-                # Test to see if the word is valid by querying the dictionary
-                first_letter = self._dictionary.root.get_next_state(str(letter))
-
-                if not first_letter:
-                    raise RuntimeError("This should never happen")
-
-                idx = y
-
-                while current_state and idx >= 0 and self.board[x][idx] == Letter.BLANK:
-                    current_state = current_state.get_next_state(str(self.board[x][idx]))
-
-                    if not current_state:
-                        self._horizontal_cross_checks[x][idx].remove(letter)
-                        break
-
-                    idx -= 1
-
-                if current_state and letter not in current_state.letters_that_make_a_word:
-                    self._horizontal_cross_checks[x][idx].remove(letter)
-                    continue
+            if not state or letter not in state.letters_that_make_a_word:
+                self._horizontal_cross_checks[x][y].remove(letter)
 
     def _update_vertical_cross_checks(self, point: Point):
-        pass
+        """
+        Updates the vertical cross checks for a given point.
+        A cross check is a set of letters that can be placed at a given point, while making valid words on the adjacent axis.
+        If there's no letters on the adjacent axis, the cross check includes all letters.
+        Vertical cross checks are for creating horizontal words, and vice versa.
+        """
+        x, y = point
+        for letter in self._vertical_cross_checks[x][y]:
+            state = self._dictionary.root.get_next_state(str(letter))
+
+            if not state:
+                raise RuntimeError("This should never happen")
+
+            go_up = True
+            idx = x
+
+            while state and 0 <= idx < BOARD_ROWS:
+                if x == 0 or (go_up and self.board[idx][y] == Letter.BLANK):
+                    state = state.get_next_state(DELIMETER)
+                    go_up = False
+                    idx = x + 1
+                    continue
+
+                if not go_up and self.board[idx][y] == Letter.BLANK:
+                    break
+
+                state = state.get_next_state(str(self.board[idx][y]))
+                idx += -1 if go_up else 1
+
+            if not state or letter not in state.letters_that_make_a_word:
+                self._vertical_cross_checks[x][y].remove(letter)
 
     def __str__(self):
         return "\n".join(
             [" ".join([cell.value for cell in row]) for row in self.board])
+
+
+def in_bounds(point: Point) -> bool:
+    x, y = point
+    return 0 <= x < BOARD_ROWS and 0 <= y < BOARD_COLS
