@@ -55,10 +55,10 @@ class Board:
         # vertically at a particular point, while making valid words on the adjacent axis.
         # If there's no letters on the adjacent axis, the cross check includes all letters.
         # Horizontal cross checks are for creating vertical words, and vice versa.
-        self._horizontal_cross_checks: list[list[set[Letter]]] = [
-            [self._dict.starting_letters() for _ in range(BOARD_ROWS)] for _ in range(BOARD_COLS)]
-        self._vertical_cross_checks: list[list[set[Letter]]] = [
-            [self._dict.starting_letters() for _ in range(BOARD_ROWS)] for _ in range(BOARD_COLS)]
+        self._horizontal_cross_checks: list[list[set[Letter]]] = [[self._dict.starting_letters().union(
+            {Letter.BLANK}) for _ in range(BOARD_ROWS)] for _ in range(BOARD_COLS)]
+        self._vertical_cross_checks: list[list[set[Letter]]] = [[self._dict.starting_letters().union(
+            {Letter.BLANK}) for _ in range(BOARD_ROWS)] for _ in range(BOARD_COLS)]
 
     def _build_square_types(self):
         """
@@ -305,7 +305,13 @@ class Board:
         Vertical cross checks are for creating horizontal words, and vice versa.
         """
         x, y = point
+        to_remove = []
+
         for letter in self._vertical_cross_checks[x][y]:
+            # Skip blank letters for now - they will be handled at the end
+            if letter == Letter.BLANK:
+                continue
+
             state = self._dict.root.get_next_state(str(letter))
 
             if not state:
@@ -315,20 +321,35 @@ class Board:
             idx = x
 
             while state and 0 <= idx < BOARD_ROWS:
-                if x == 0 or (go_up and self.board[idx][y] == Letter.BLANK):
+
+                if idx == 0 or (go_up and self.board[idx][y] == Letter.BLANK):
                     state = state.get_next_state(DELIMETER)
                     go_up = False
                     idx = x + 1
                     continue
 
-                if not go_up and self.board[idx][y] == Letter.BLANK:
+                if not go_up and (
+                        (idx < BOARD_ROWS - 1 and self.board[idx + 1][y] == Letter.BLANK)
+                        or idx == BOARD_ROWS - 1):
                     break
 
                 state = state.get_next_state(str(self.board[idx][y]))
+
                 idx += -1 if go_up else 1
 
-            if not state or letter not in state.letters_that_make_a_word:
-                self._vertical_cross_checks[x][y].remove(letter)
+            if not state or not (
+                    # TODO in the future maybe remove Letters in general
+                    0 <= idx < BOARD_ROWS) or str(self.board[idx][y]) not in state.letters_that_make_a_word:
+                to_remove.append(letter)
+
+        # Remove the letters that are not valid from the cross checks
+        for letter in to_remove:
+            self._vertical_cross_checks[x][y].remove(letter)
+
+        # If the only letter in the cross check is the blank, remove it
+        if (len(self._vertical_cross_checks[x][y]) == 1 and
+                Letter.BLANK in self._vertical_cross_checks[x][y]):
+            self._vertical_cross_checks[x][y].remove(Letter.BLANK)
 
     def __str__(self):
         return "\n".join(
