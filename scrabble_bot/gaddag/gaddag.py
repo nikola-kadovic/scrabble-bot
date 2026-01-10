@@ -86,7 +86,11 @@ class Gaddag:
     A GADDAG is a reverse-prefix directed acyclic word graph that is used as a lexicon and as part of a word generator for the game of Scrabble.
     """
 
-    def __init__(self, wordlist_path: Optional[str] = None, words: list[str] = []):
+    def __init__(
+            self,
+            wordlist_path: Optional[str] = None,
+            words: list[str] = [],
+            use_cache: bool = True):
         if wordlist_path is not None:
             self.wordlist_path = wordlist_path
             self.words = []
@@ -97,6 +101,8 @@ class Gaddag:
 
         self.root = State()
         self._cache_dir = Path("temp")
+
+        self._build_gaddag(use_cache=use_cache)
 
     def load_wordlist(self):
         if self.wordlist_path is None:
@@ -154,7 +160,7 @@ class Gaddag:
             print(f"Warning: Failed to load GADDAG cache: {e}")
             return False
 
-    def build_gaddag(self, use_cache: bool = True):
+    def _build_gaddag(self, use_cache: bool):
         """
         Build the GADDAG from the word list.
 
@@ -196,3 +202,12 @@ class Gaddag:
                 current_state = current_state.add_arc(word[i])
             current_state = current_state.add_arc(DELIMETER)
             current_state.add_arc(word[m + 1], destination)
+
+    def starting_letters(self) -> set[Letter]:
+        """
+        Returns the set of letters that can be used to start a word.
+        This is just all the arcs coming out of the root node.
+        We can cache this because it doesn't change after the GADDAG is built.
+        """
+
+        return set([Letter(letter) for letter in self.root.arcs.keys() if letter != DELIMETER])

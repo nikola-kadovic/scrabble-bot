@@ -234,7 +234,7 @@ class TestGaddag:
         words = ["CAT", "DOG", "BAT"]
         gaddag = Gaddag(words=words)
         assert len(gaddag.words) == 3
-        gaddag.build_gaddag()
+        gaddag._build_gaddag(use_cache=False)
         # After building, the root should have arcs
         assert isinstance(gaddag.root, State)
         assert len(gaddag.root.arcs) > 0
@@ -255,7 +255,7 @@ class TestGaddagIntegration:
         gaddag = Gaddag(words=words)
         assert len(gaddag.words) == 4
 
-        gaddag.build_gaddag()
+        gaddag._build_gaddag(use_cache=False)
         # Verify the structure was built
         assert isinstance(gaddag.root, State)
         # Root should have arcs for the words we added
@@ -279,7 +279,7 @@ class TestGaddagCaching:
 
         # Build with words list - should NOT create cache
         gaddag1 = Gaddag(words=words)
-        gaddag1.build_gaddag()
+        gaddag1._build_gaddag(use_cache=True)
 
         # Verify cache file was NOT created
         cache_files = list(cache_dir.glob("gaddag_*.pkl"))
@@ -309,7 +309,7 @@ class TestGaddagCaching:
         try:
             # First build - should create cache
             gaddag1 = Gaddag(wordlist_path=temp_path)
-            gaddag1.build_gaddag()
+            gaddag1._build_gaddag(use_cache=True)
             root1_arcs_count = len(gaddag1.root.arcs)
 
             # Verify cache file was created with filename-based key
@@ -318,7 +318,7 @@ class TestGaddagCaching:
 
             # Second build - should load from cache
             gaddag2 = Gaddag(wordlist_path=temp_path)
-            gaddag2.build_gaddag()
+            gaddag2._build_gaddag(use_cache=True)
             root2_arcs_count = len(gaddag2.root.arcs)
 
             # Verify structure is the same
@@ -352,11 +352,11 @@ class TestGaddagCaching:
         try:
             # Build with first wordlist
             gaddag1 = Gaddag(wordlist_path=temp_path1)
-            gaddag1.build_gaddag()
+            gaddag1._build_gaddag(use_cache=True)
 
             # Build with second wordlist
             gaddag2 = Gaddag(wordlist_path=temp_path2)
-            gaddag2.build_gaddag()
+            gaddag2._build_gaddag(use_cache=True)
 
             # Should have two different cache files based on filenames
             expected_cache1 = cache_dir / f"gaddag_{temp_filename1}.pkl"
@@ -387,12 +387,12 @@ class TestGaddagCaching:
         try:
             # Build with cache
             gaddag1 = Gaddag(wordlist_path=temp_path)
-            gaddag1.build_gaddag(use_cache=True)
+            gaddag1._build_gaddag(use_cache=True)
             root1_arcs_count = len(gaddag1.root.arcs)
 
             # Build without cache (should rebuild)
             gaddag2 = Gaddag(wordlist_path=temp_path)
-            gaddag2.build_gaddag(use_cache=False)
+            gaddag2._build_gaddag(use_cache=False)
             root2_arcs_count = len(gaddag2.root.arcs)
 
             # Both should have the same structure

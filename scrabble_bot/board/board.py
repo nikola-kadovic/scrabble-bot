@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import TypeAlias
 
-from scrabble_bot.gaddag.gaddag import DELIMETER, Gaddag
+from scrabble_bot.gaddag.gaddag import DELIMETER, Gaddag, State
 from scrabble_bot.board.letter import Letter, get_all_letters
 from scrabble_bot.board.move import Move
 
@@ -39,7 +39,7 @@ class Board:
         self.board: list[list[Letter]] = [
             [Letter.BLANK for _ in range(BOARD_ROWS)] for _ in range(BOARD_COLS)]
 
-        self._dictionary = dictionary
+        self._dict = dictionary
 
         self.square_types: dict[Point, SquareType] = {}
         self._build_square_types()
@@ -56,9 +56,9 @@ class Board:
         # If there's no letters on the adjacent axis, the cross check includes all letters.
         # Horizontal cross checks are for creating vertical words, and vice versa.
         self._horizontal_cross_checks: list[list[set[Letter]]] = [
-            [get_all_letters() for _ in range(BOARD_ROWS)] for _ in range(BOARD_COLS)]
+            [self._dict.starting_letters() for _ in range(BOARD_ROWS)] for _ in range(BOARD_COLS)]
         self._vertical_cross_checks: list[list[set[Letter]]] = [
-            [get_all_letters() for _ in range(BOARD_ROWS)] for _ in range(BOARD_COLS)]
+            [self._dict.starting_letters() for _ in range(BOARD_ROWS)] for _ in range(BOARD_COLS)]
 
     def _build_square_types(self):
         """
@@ -251,8 +251,14 @@ class Board:
         Horizontal cross checks are for creating vertical words, and vice versa.
         """
         x, y = point
+        to_remove = []
+
         for letter in self._horizontal_cross_checks[x][y]:
-            state = self._dictionary.root.get_next_state(str(letter))
+            # Skip blank letters for now - they will be handled at the end
+            if letter == Letter.BLANK:
+                continue
+
+            state = self._dict.root.get_next_state(str(letter))
 
             if not state:
                 raise RuntimeError("This should never happen")
@@ -262,21 +268,34 @@ class Board:
 
             while state and 0 <= idx < BOARD_COLS:
 
-                if y == 0 or (go_left and self.board[x][idx] == Letter.BLANK):
+                if idx == 0 or (go_left and self.board[x][idx] == Letter.BLANK):
                     state = state.get_next_state(DELIMETER)
                     go_left = False
                     idx = y + 1
                     continue
 
-                if not go_left and self.board[x][idx] == Letter.BLANK:
+                if not go_left and (
+                        (idx < BOARD_COLS - 1 and self.board[x][idx + 1] == Letter.BLANK)
+                        or idx == BOARD_COLS - 1):
                     break
 
                 state = state.get_next_state(str(self.board[x][idx]))
 
                 idx += -1 if go_left else 1
 
-            if not state or letter not in state.letters_that_make_a_word:
-                self._horizontal_cross_checks[x][y].remove(letter)
+            if not state or not (
+                    # TODO in the future maybe remove Letters in general
+                    0 <= idx < BOARD_COLS) or str(self.board[x][idx]) not in state.letters_that_make_a_word:
+                to_remove.append(letter)
+
+        # Remove the letters that are not valid from the cross checks
+        for letter in to_remove:
+            self._horizontal_cross_checks[x][y].remove(letter)
+
+        # If the only letter in the cross check is the blank, remove it
+        if (len(self._horizontal_cross_checks[x][y]) == 1 and
+                Letter.BLANK in self._horizontal_cross_checks[x][y]):
+            self._horizontal_cross_checks[x][y].remove(Letter.BLANK)
 
     def _update_vertical_cross_checks(self, point: Point):
         """
@@ -287,7 +306,7 @@ class Board:
         """
         x, y = point
         for letter in self._vertical_cross_checks[x][y]:
-            state = self._dictionary.root.get_next_state(str(letter))
+            state = self._dict.root.get_next_state(str(letter))
 
             if not state:
                 raise RuntimeError("This should never happen")
