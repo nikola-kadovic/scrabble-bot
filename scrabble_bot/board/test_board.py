@@ -216,10 +216,12 @@ class TestHorizontalCrossChecks:
         assert len(board._horizontal_cross_checks[7][7]) == 0
 
         # Place second word
-
         board.place_word([Letter.A, Letter.B, Letter.L, Letter.E], (7, 8), vertical=False)
 
         # R and Y should be in the middle horizontal cross check
         assert len(board._horizontal_cross_checks[7][7]) == 2
         assert Letter.R in board._horizontal_cross_checks[7][7]
         assert Letter.Y in board._horizontal_cross_checks[7][7]
+
+        assert len(board._vertical_cross_checks[6][8]) == 1
+        assert Letter.P in board._vertical_cross_checks[6][8]
