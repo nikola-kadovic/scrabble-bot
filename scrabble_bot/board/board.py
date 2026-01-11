@@ -82,6 +82,9 @@ class Board:
             self.square_types[(BOARD_ROWS - i - 1, i)] = SquareType.DOUBLE_WORD
             self.square_types[(BOARD_ROWS - i - 1, BOARD_COLS - i - 1)] = SquareType.DOUBLE_WORD
 
+        # Special case: the center square is a double word square, but only for the first move
+        self.square_types[(7, 7)] = SquareType.DOUBLE_WORD
+
         # Build triple word squares:
         for i in range(0, BOARD_ROWS, 7):
             for j in range(0, BOARD_COLS, 7):
@@ -160,7 +163,18 @@ class Board:
     def get_valid_moves(self) -> list[Move]:
         raise NotImplementedError("Not implemented")
 
-    def place_word(self, word: list[Letter], starting_point: Point, vertical: bool) -> bool:
+    def get_all_valid_moves(self, letters: set[Letter]) -> list[Move]:
+        # Iterate over all anchor points - these are the points where we can start a move.
+        for points in self._anchor_points:
+            pass
+
+        raise NotImplementedError("Not implemented")
+
+    def _get_all_valid_moves_from_point(self, point: Point, letters: set[Letter]) -> list[Move]:
+
+        raise NotImplementedError("Not implemented")
+
+    def place_word(self, word: list[Letter], starting_point: Point, vertical: bool):
         """
         Places a word on the board. May raise a ValueError if the move is invalid.
         """
@@ -171,11 +185,16 @@ class Board:
             raise ValueError(f"Starting point {starting_point} is out of bounds")
 
         if vertical:
-            return self._place_word_vertically(word, starting_point)
+            self._place_word_vertically(word, starting_point)
         else:
-            return self._place_word_horizontally(word, starting_point)
+            self._place_word_horizontally(word, starting_point)
 
-    def _place_word_horizontally(self, word: list[Letter], sp: Point) -> bool:
+        if self._first_move:
+            self._first_move = False
+            # The center square is no longer a double word square after the first move
+            self.square_types[(7, 7)] = SquareType.DEFAULT
+
+    def _place_word_horizontally(self, word: list[Letter], sp: Point):
         if sp[1] + len(word) > BOARD_COLS:
             raise ValueError(f"Word {word} is too long to fit at starting point {sp}")
 
@@ -207,11 +226,6 @@ class Board:
                 self._update_horizontal_cross_checks((x, y + 1))
 
         self._update_anchor_points(sp, (sp[0], sp[1] + len(word) - 1))
-
-        if self._first_move:
-            self._first_move = False
-
-        return True
 
     def _place_word_vertically(self, word: list[Letter], sp: Point) -> bool:
         if sp[0] + len(word) > BOARD_ROWS:
@@ -246,9 +260,6 @@ class Board:
                 self._update_vertical_cross_checks((x + 1, y))
 
             self._update_anchor_points(sp, (sp[0] + len(word) - 1, sp[1]))
-
-            if self._first_move:
-                self._first_move = False
 
         return True
 
