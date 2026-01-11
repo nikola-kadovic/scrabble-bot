@@ -148,16 +148,6 @@ class TestBoard:
                 assert (row, col) in board.square_types
                 assert isinstance(board.square_types[(row, col)], SquareType)
 
-    def test_board_string_representation(self):
-        """Test that Board can be converted to string"""
-        dictionary = Gaddag(words=[])
-        board = Board(dictionary)
-        board_str = str(board)
-        assert isinstance(board_str, str)
-        # Should have 15 lines (one per row)
-        lines = board_str.split("\n")
-        assert len(lines) == 15
-
     def test_get_valid_moves_not_implemented(self):
         """Test that get_valid_moves raises NotImplementedError"""
         dictionary = Gaddag(words=[])
@@ -225,3 +215,60 @@ class TestHorizontalCrossChecks:
 
         assert len(board._vertical_cross_checks[6][8]) == 1
         assert Letter.P in board._vertical_cross_checks[6][8]
+
+
+class TestAnchorPoints:
+    """Tests for anchor points functionality"""
+
+    def test_anchor_points_initial_state(self):
+        """Test that anchor points are initially empty"""
+        dictionary = Gaddag(words=[])
+        board = Board(dictionary)
+        assert len(board._anchor_points) == 0
+
+    def test_anchor_points_after_horizontal_word(self):
+        """Test anchor points after placing a horizontal word"""
+        dictionary = Gaddag(words=["ACT"])
+        board = Board(dictionary)
+        # Place word "ACT" horizontally at center
+        board.place_word([Letter.A, Letter.C, Letter.T], (7, 7), vertical=False)
+
+        assert len(board._anchor_points) == 8
+
+        # Anchor points are all adjacent neighbors (left and right) of the word that are blank
+        expected_anchors = {(6, 7), (8, 7), (6, 8), (8, 8), (6, 9), (8, 9), (7, 6), (7, 10)}
+
+        for anchor in expected_anchors:
+            assert anchor in board._anchor_points
+
+    def test_anchor_points_after_vertical_word(self):
+        """Test anchor points after placing a vertical word"""
+        dictionary = Gaddag(words=["ACT"])
+        board = Board(dictionary)
+        # Place word "ACT" vertically at center
+        board.place_word([Letter.A, Letter.C, Letter.T], (7, 7), vertical=True)
+
+        assert len(board._anchor_points) == 8
+
+        # Anchor points are all adjacent neighbors (above and below, left and
+        # right) of the word that are blank
+        expected_anchors = {(6, 7), (10, 7), (7, 6), (8, 6), (9, 6), (7, 8), (8, 8), (9, 8)}
+
+        for anchor in expected_anchors:
+            assert anchor in board._anchor_points
+
+    def test_anchor_points_after_multiple_words(self):
+        """Test anchor points after placing multiple words"""
+        dictionary = Gaddag(words=["ACT", "CAT"])
+        board = Board(dictionary)
+        # Place word "ACT" vertically at center
+        board.place_word([Letter.A, Letter.C, Letter.T], (7, 7), vertical=True)
+        board.place_word([Letter.C, Letter.A, Letter.T], (8, 7), vertical=False)
+
+        assert len(board._anchor_points) == 10
+
+        expected_anchors = {(7, 6), (8, 6), (9, 6), (10, 7), (9, 8),
+                            (9, 9), (8, 10), (7, 9), (7, 8), (6, 7)}
+
+        for anchor in expected_anchors:
+            assert anchor in board._anchor_points

@@ -49,7 +49,7 @@ class Board:
         # Represents points where we can start a move. Since we need at least one
         # letter added, this is usually empty adjacent squares to words that have
         # already been placed.
-        self._anchor_points: list[Point] = []
+        self._anchor_points: set[Point] = set([])
 
         # Represents the set of letters that can be placed horizontally and
         # vertically at a particular point, while making valid words on the adjacent axis.
@@ -206,6 +206,8 @@ class Board:
             if i == len(word) - 1 and in_bounds((x, y + 1)):
                 self._update_horizontal_cross_checks((x, y + 1))
 
+        self._update_anchor_points(sp, (sp[0], sp[1] + len(word) - 1))
+
         if self._first_move:
             self._first_move = False
 
@@ -242,6 +244,8 @@ class Board:
 
             if i == len(word) - 1 and in_bounds((x + 1, y)):
                 self._update_vertical_cross_checks((x + 1, y))
+
+            self._update_anchor_points(sp, (sp[0] + len(word) - 1, sp[1]))
 
             if self._first_move:
                 self._first_move = False
@@ -358,9 +362,111 @@ class Board:
 
         return state is not None and (str(self.board[idx][y]) in state.letters_that_make_a_word)
 
+    def _update_anchor_points(self, starting_point: Point, ending_point: Point):
+        x1, y1 = starting_point
+        x2, y2 = ending_point
+        vertical = y1 == y2
+
+        if vertical:
+            for x in range(x1, x2 + 1):
+                # Remove any anchor points that are on the same row as the word
+                if (x, y1) in self._anchor_points:
+                    self._anchor_points.remove((x, y1))
+
+                # Get horizontal neighbors
+                for neighbor in get_neighbors((x, y1), horizontal=True):
+                    nx, ny = neighbor
+                    if self.board[nx][ny] == Letter.BLANK and neighbor not in self._anchor_points:
+                        self._anchor_points.add(neighbor)
+            # Add vertical starting and ending points
+            self._anchor_points.add((x1 - 1, y1)) if in_bounds((x1 - 1, y1)) else None
+            self._anchor_points.add((x2 + 1, y2)) if in_bounds((x2 + 1, y2)) else None
+        else:
+            for y in range(y1, y2 + 1):
+                # Remove any anchor points that are on the same column as the word
+                if (x1, y) in self._anchor_points:
+                    self._anchor_points.remove((x1, y))
+
+                # Get vertical neighbors
+                for neighbor in get_neighbors((x1, y), vertical=True):
+                    nx, ny = neighbor
+                    if self.board[nx][ny] == Letter.BLANK and neighbor not in self._anchor_points:
+                        self._anchor_points.add(neighbor)
+
+            # Add horizontal starting and ending points
+            self._anchor_points.add((x1, y1 - 1)) if in_bounds((x1, y1 - 1)) else None
+            self._anchor_points.add((x2, y2 + 1)) if in_bounds((x2, y2 + 1)) else None
+
     def __str__(self):
-        return "\n".join(
-            [" ".join([cell.value for cell in row]) for row in self.board])
+        """
+        Returns a pretty string representation of the board showing:
+        - Letters placed on the board
+        - Square types for empty squares (with colors)
+        - Row and column numbers for reference
+        """
+        # ANSI color codes
+        RED = '\033[91m'  # Triple word
+        YELLOW = '\033[93m'  # Double word
+        LIGHT_BLUE = '\033[96m'  # Double letter
+        DARK_BLUE = '\033[94m'  # Triple letter
+        RESET = '\033[0m'  # Reset color
+        BOLD = '\033[1m'  # Bold for letters
+        GRAY = '\033[90m'  # Gray for empty squares
+
+        def get_square_color(square_type: SquareType) -> str:
+            """Get the color code for a square type"""
+            if square_type == SquareType.TRIPLE_WORD:
+                return RED
+            elif square_type == SquareType.DOUBLE_WORD:
+                return YELLOW
+            elif square_type == SquareType.DOUBLE_LETTER:
+                return LIGHT_BLUE
+            elif square_type == SquareType.TRIPLE_LETTER:
+                return DARK_BLUE
+            else:
+                return GRAY
+
+        lines = []
+
+        # Header with column numbers
+        header = "   " + " ".join([f"{i:2d}" for i in range(BOARD_COLS)])
+        lines.append(header)
+        lines.append("   " + "-" * (BOARD_COLS * 3 - 1))
+
+        # Board rows
+        for row in range(BOARD_ROWS):
+            row_str = f"{row:2d}|"
+            for col in range(BOARD_COLS):
+                letter = self.board[row][col]
+                square_type = self.square_types[(row, col)]
+
+                if letter != Letter.BLANK:
+                    # Show the letter in bold, padded to 3 characters
+                    row_str += f" {BOLD}{letter.value}{RESET} "
+                else:
+                    # Show square type with color, padded to 3 characters
+                    color = get_square_color(square_type)
+                    row_str += f" {color}{square_type.value}{RESET} "
+            row_str += f"|{row:2d}"
+            lines.append(row_str)
+
+        # Footer with column numbers
+        lines.append("   " + "-" * (BOARD_COLS * 3 - 1))
+        lines.append("   " + " ".join([f"{i:2d}" for i in range(BOARD_COLS)]))
+
+        return "\n".join(lines)
+
+
+def get_neighbors(point: Point, vertical: bool = False, horizontal: bool = False) -> list[Point]:
+    x, y = point
+    neighbors = []
+    if vertical:
+        neighbors.append((x - 1, y)) if in_bounds((x - 1, y)) else None
+        neighbors.append((x + 1, y)) if in_bounds((x + 1, y)) else None
+    if horizontal:
+        neighbors.append((x, y - 1)) if in_bounds((x, y - 1)) else None
+        neighbors.append((x, y + 1)) if in_bounds((x, y + 1)) else None
+    return neighbors
 
 
 def in_bounds(point: Point) -> bool:
