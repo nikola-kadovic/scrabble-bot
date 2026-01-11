@@ -3,7 +3,7 @@ Basic tests for board.py using pytest
 """
 
 import pytest
-from scrabble_bot.board.board import Board, SquareType
+from scrabble_bot.board.board import Board, SquareType, BOARD_ROWS, BOARD_COLS
 from scrabble_bot.board.letter import Letter, LETTER_SCORES
 from scrabble_bot.board.move import Move
 from scrabble_bot.gaddag.gaddag import Gaddag
@@ -83,14 +83,14 @@ class TestMove:
 
 
 class TestBoard:
-    """Tests for the Board class"""
+    """General Tests for the Board class"""
 
     def test_board_initialization(self):
         """Test that Board can be initialized"""
         dictionary = Gaddag(words=[])
         board = Board(dictionary)
-        assert board.ROWS == 15
-        assert board.COLS == 15
+        assert BOARD_ROWS == 15
+        assert BOARD_COLS == 15
         assert len(board.board) == 15
         assert len(board.board[0]) == 15
 
@@ -143,8 +143,8 @@ class TestBoard:
         """Test that all squares have a type"""
         dictionary = Gaddag(words=[])
         board = Board(dictionary)
-        for row in range(board.ROWS):
-            for col in range(board.COLS):
+        for row in range(BOARD_ROWS):
+            for col in range(BOARD_COLS):
                 assert (row, col) in board.square_types
                 assert isinstance(board.square_types[(row, col)], SquareType)
 
@@ -164,3 +164,24 @@ class TestBoard:
         board = Board(dictionary)
         with pytest.raises(NotImplementedError):
             board.get_valid_moves()
+
+
+class TestHorizontalCrossChecks:
+    """Tests for _update_horizontal_cross_checks method"""
+
+    def test_horizontal_cross_check_example_1(self):
+        """Test horizontal cross check with a letter to the left"""
+        dictionary = Gaddag(words=["ACT", "TA"])
+        board = Board(dictionary)
+        board.place_word([Letter.A, Letter.C, Letter.T], (7, 7), vertical=True)
+
+        assert len(board._horizontal_cross_checks[7][6]) == 1
+        assert len(board._horizontal_cross_checks[7][8]) == 0
+        assert Letter.T in board._horizontal_cross_checks[7][6]
+
+        assert len(board._horizontal_cross_checks[8][6]) == 0
+        assert len(board._horizontal_cross_checks[8][8]) == 0
+
+        assert len(board._horizontal_cross_checks[9][6]) == 0
+        assert len(board._horizontal_cross_checks[9][8]) == 1
+        assert Letter.A in board._horizontal_cross_checks[9][8]

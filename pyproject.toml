@@ -19,6 +19,13 @@ packages = ["scrabble_bot"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+# Enable breakpoint() support in pytest
+addopts = [
+    "--capture=no",  # Disable output capturing to see print statements
+    "-s",  # Shortcut for --capture=no
+]
+# Enable debugging with breakpoint() builtin
+# This allows using breakpoint() in code which will trigger the debugger
 
 [tool.autopep8]
 max_line_length = 100

@@ -15,7 +15,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 import pickle
-import os
 from pathlib import Path
 
 from scrabble_bot.board.letter import Letter

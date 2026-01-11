@@ -26,6 +26,62 @@
                 "PYTHONPATH": "${workspaceFolder}/quackle/bindings/python3:${env:PYTHONPATH}"
             },
             "justMyCode": true
+        },
+        {
+            "name": "Python: Debug pytest (all tests)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "-v",
+                "--tb=short"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/quackle/bindings/python3:${env:PYTHONPATH}"
+            },
+            "justMyCode": false,
+            "stopOnEntry": false
+        },
+        {
+            "name": "Python: Debug pytest (current file)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "-v",
+                "--tb=short",
+                "${file}"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/quackle/bindings/python3:${env:PYTHONPATH}"
+            },
+            "justMyCode": false,
+            "stopOnEntry": false
+        },
+        {
+            "name": "Python: Debug pytest (current test)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "-v",
+                "--tb=short",
+                "${file}::${selectedText}"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/quackle/bindings/python3:${env:PYTHONPATH}"
+            },
+            "justMyCode": false,
+            "stopOnEntry": false
         }
     ]
 }
