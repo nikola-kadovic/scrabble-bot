@@ -56,9 +56,9 @@ class Board:
         # If there's no letters on the adjacent axis, the cross check includes all letters.
         # Horizontal cross checks are for creating vertical words, and vice versa.
         self._horizontal_cross_checks: list[list[set[Letter]]] = [
-            [self._dict.starting_letters() for _ in range(BOARD_ROWS)] for _ in range(BOARD_COLS)]
+            [self._dict.get_dictionary_letters() for _ in range(BOARD_ROWS)] for _ in range(BOARD_COLS)]
         self._vertical_cross_checks: list[list[set[Letter]]] = [
-            [self._dict.starting_letters() for _ in range(BOARD_ROWS)] for _ in range(BOARD_COLS)]
+            [self._dict.get_dictionary_letters() for _ in range(BOARD_ROWS)] for _ in range(BOARD_COLS)]
 
     def _build_square_types(self):
         """
@@ -191,7 +191,9 @@ class Board:
 
             self.board[x][y] = letter
 
-            # Update cross checks for the space we just filled
+        # Update cross checks for the space we just filled
+        for i, letter in enumerate(word):
+            x, y = sp[0], sp[1] + i
             if in_bounds((x - 1, y)):
                 self._update_vertical_cross_checks((x - 1, y))
 
@@ -225,6 +227,9 @@ class Board:
 
             self.board[x][y] = letter
 
+        # Update cross checks for the space we just filled
+        for i, letter in enumerate(word):
+            x, y = sp[0] + i, sp[1]
             # Update cross checks for the space we just filled
             if in_bounds((x, y - 1)):
                 self._update_horizontal_cross_checks((x, y - 1))
@@ -251,15 +256,12 @@ class Board:
         Horizontal cross checks are for creating vertical words, and vice versa.
         """
         x, y = point
-        to_remove = []
 
-        for letter in self._horizontal_cross_checks[x][y]:
-            if not self._letter_makes_a_word_horizontally(point, letter):
-                to_remove.append(letter)
-
-        # Remove the letters that are not valid from the cross checks
-        for letter in to_remove:
-            self._horizontal_cross_checks[x][y].remove(letter)
+        for letter in self._dict.get_dictionary_letters():
+            if self._letter_makes_a_word_horizontally(point, letter):
+                self._horizontal_cross_checks[x][y].add(letter)
+            else:
+                self._horizontal_cross_checks[x][y].discard(letter)
 
     def _letter_makes_a_word_horizontally(self, point: Point, letter: Letter) -> bool:
         """
@@ -286,6 +288,12 @@ class Board:
             if not state:
                 return False
 
+        if letters_to_left and letters_to_right:
+            state = state.get_next_state(str(self.board[x][idx]))
+
+        if not state:
+            return False
+
         if letters_to_right:
             state = state.get_next_state(DELIMETER)
 
@@ -306,15 +314,12 @@ class Board:
         Vertical cross checks are for creating horizontal words, and vice versa.
         """
         x, y = point
-        to_remove = []
 
-        for letter in self._vertical_cross_checks[x][y]:
-            if not self._letter_makes_a_word_vertically(point, letter):
-                to_remove.append(letter)
-
-        # Remove the letters that are not valid from the cross checks
-        for letter in to_remove:
-            self._vertical_cross_checks[x][y].remove(letter)
+        for letter in self._dict.get_dictionary_letters():
+            if self._letter_makes_a_word_vertically(point, letter):
+                self._vertical_cross_checks[x][y].add(letter)
+            else:
+                self._vertical_cross_checks[x][y].discard(letter)
 
     def _letter_makes_a_word_vertically(self, point: Point, letter: Letter) -> bool:
         """

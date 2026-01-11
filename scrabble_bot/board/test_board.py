@@ -171,7 +171,7 @@ class TestHorizontalCrossChecks:
 
     def test_horizontal_cross_check_example_1(self):
         """Test horizontal cross check with a letter to the left"""
-        dictionary = Gaddag(words=["ACT", "TA"])
+        dictionary = Gaddag(words=["ACT", "ACTS", "TA"])
         board = Board(dictionary)
         board.place_word([Letter.A, Letter.C, Letter.T], (7, 7), vertical=True)
 
@@ -185,3 +185,41 @@ class TestHorizontalCrossChecks:
         assert len(board._horizontal_cross_checks[9][6]) == 0
         assert len(board._horizontal_cross_checks[9][8]) == 1
         assert Letter.A in board._horizontal_cross_checks[9][8]
+
+        # Vertical checks at the bottom of the word
+        assert len(board._vertical_cross_checks[10][7]) == 1
+        assert Letter.S in board._vertical_cross_checks[10][7]
+
+    def test_horizontal_cross_check_example_2(self):
+        dictionary = Gaddag(words=["PA", "ABLE", "PAYABLE", "PARABLE"])
+
+        board = Board(dictionary)
+
+        # Place first word
+        board.place_word([Letter.P, Letter.A], (7, 5), vertical=False)
+
+        # Bottom of the first letter should have PA as a valid word
+        assert len(board._vertical_cross_checks[8][5]) == 1
+        assert Letter.A in board._vertical_cross_checks[8][1]
+
+        # Top of the second letter should have PA as a valid word
+        assert len(board._vertical_cross_checks[6][6]) == 1
+        assert Letter.P in board._vertical_cross_checks[6][6]
+
+        # Rest of the word shouldn't have any horizontal / vertical cross checks
+
+        assert len(board._vertical_cross_checks[6][5]) == 0
+
+        assert len(board._vertical_cross_checks[8][6]) == 0
+
+        assert len(board._horizontal_cross_checks[7][4]) == 0
+        assert len(board._horizontal_cross_checks[7][7]) == 0
+
+        # Place second word
+
+        board.place_word([Letter.A, Letter.B, Letter.L, Letter.E], (7, 8), vertical=False)
+
+        # R and Y should be in the middle horizontal cross check
+        assert len(board._horizontal_cross_checks[7][7]) == 2
+        assert Letter.R in board._horizontal_cross_checks[7][7]
+        assert Letter.Y in board._horizontal_cross_checks[7][7]

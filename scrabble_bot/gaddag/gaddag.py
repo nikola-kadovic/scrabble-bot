@@ -202,7 +202,7 @@ class Gaddag:
             current_state = current_state.add_arc(DELIMETER)
             current_state.add_arc(word[m + 1], destination)
 
-    def starting_letters(self) -> set[Letter]:
+    def get_dictionary_letters(self) -> set[Letter]:
         """
         Returns the set of letters that can be used to start a word.
         This is just all the arcs coming out of the root node.
