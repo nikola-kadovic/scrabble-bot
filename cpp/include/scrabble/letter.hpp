@@ -65,6 +65,18 @@ constexpr int get_letter_score(Letter l) noexcept {
     return LETTER_SCORES[static_cast<uint8_t>(l)];
 }
 
+} // namespace scrabble
+
+// Hash specialization must appear before any unordered container uses Letter
+template <>
+struct std::hash<scrabble::Letter> {
+    size_t operator()(scrabble::Letter l) const noexcept {
+        return static_cast<size_t>(l);
+    }
+};
+
+namespace scrabble {
+
 inline std::unordered_set<Letter> get_all_letters() {
     std::unordered_set<Letter> result;
     for (int i = 0; i <= 26; i++) {
@@ -74,11 +86,3 @@ inline std::unordered_set<Letter> get_all_letters() {
 }
 
 } // namespace scrabble
-
-// Hash specialization so Letter can be used in unordered containers
-template <>
-struct std::hash<scrabble::Letter> {
-    size_t operator()(scrabble::Letter l) const noexcept {
-        return static_cast<size_t>(l);
-    }
-};
