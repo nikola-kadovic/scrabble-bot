@@ -1,7 +1,7 @@
 # Makefile for building Quackle with Python3 SWIG bindings
 # Based on https://github.com/quackle/quackle.git
 
-.PHONY: all clean help
+.PHONY: all clean help build_cpp
 
 # Directories
 QUACKLE_DIR = quackle
@@ -17,8 +17,15 @@ WORDLIST_DIR = dictionary
 # Default target
 all: get_quackle build_libquackle build_libquackleio build_python3_bindings download_wordlist
 
+build_cpp:
+	@echo "Configuring CMake..."
+	cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+	@echo "Building C++ extension and tests..."
+	cmake --build build --config Release
+
 help:
 	@echo "Available targets:"
+	@echo "  build_cpp             - Configure and build the C++ extension + Catch2 tests"
 	@echo "  get_quackle           - Clone Quackle repository from GitHub"
 	@echo "  build_libquackle      - Build libquackle with -fPIC"
 	@echo "  build_libquackleio    - Build libquackleio with -fPIC"
