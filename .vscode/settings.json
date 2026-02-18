@@ -1,4 +1,11 @@
 {
+    "clangd.arguments": [
+        "--compile-commands-dir=${workspaceFolder}/build",
+        "--background-index",
+        "--clang-tidy",
+        "--header-insertion=never"
+    ],
+    "C_Cpp.intelliSenseEngine": "disabled",
     "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
     "python.languageServer": "None",
     "python.terminal.activateEnvironment": true,

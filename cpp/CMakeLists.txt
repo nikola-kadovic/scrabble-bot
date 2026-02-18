@@ -14,6 +14,9 @@ endif()
 
 python_add_library(_cpp_ext MODULE bindings/bindings.cpp WITH_SOABI)
 target_link_libraries(_cpp_ext PRIVATE scrabble_core pybind11::headers)
+set_target_properties(_cpp_ext PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/scrabble_bot"
+)
 
 if (MSVC)
     target_compile_options(_cpp_ext PRIVATE /utf-8)

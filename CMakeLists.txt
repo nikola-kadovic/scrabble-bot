@@ -3,6 +3,7 @@ project(scrabble_bot CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(Python 3.10 REQUIRED COMPONENTS Interpreter Development.Module)
 
