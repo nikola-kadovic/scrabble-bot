@@ -5,10 +5,13 @@
     "exclude": [
         "**/__pycache__",
         "**/node_modules",
-        ".venv"
+        ".venv",
+        "build",
+        "_skbuild"
     ],
+    "stubPath": ".",
     "extraPaths": [
-        "quackle/bindings/python3"
+        "."
     ],
     "pythonVersion": "3.10",
     "typeCheckingMode": "basic",

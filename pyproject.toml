@@ -1,31 +1,29 @@
 [build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
+requires = ["scikit-build-core>=0.9.0", "pybind11>=2.13.6"]
+build-backend = "scikit-build-core.build"
 
 [project]
 name = "scrabble-bot"
 version = "0.1.0"
-description = "Add your description here"
+description = "Scrabble AI bot with C++ core"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "pytest>=9.0.2",
-    "swig>=4.4.1",
     "autopep8>=2.0.0",
 ]
 
-[tool.setuptools]
-packages = ["scrabble_bot"]
+[tool.scikit-build]
+cmake.build-type = "Release"
+wheel.packages = ["scrabble_bot"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
-# Enable breakpoint() support in pytest
+testpaths = ["scrabble_bot/tests"]
 addopts = [
-    "--capture=no",  # Disable output capturing to see print statements
-    "-s",  # Shortcut for --capture=no
+    "--capture=no",
+    "-s",
 ]
-# Enable debugging with breakpoint() builtin
-# This allows using breakpoint() in code which will trigger the debugger
 
 [tool.autopep8]
 max_line_length = 100

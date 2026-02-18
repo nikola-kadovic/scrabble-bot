@@ -218,3 +218,10 @@ __marimo__/
 dictionary/
 quackle/
 temp/
+
+# C++ build artifacts
+build/
+_skbuild/
+*.pyd
+*.bin
+*.so
