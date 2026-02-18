@@ -25,6 +25,7 @@ def make_gaddag(*words: str) -> Gaddag:
 
 # ── Letter ────────────────────────────────────────────────────────────────────
 
+
 class TestLetter:
     def test_all_letters_exist(self):
         letters = list(Letter)
@@ -55,6 +56,7 @@ class TestLetterScores:
 
 # ── SquareType ────────────────────────────────────────────────────────────────
 
+
 class TestSquareType:
     def test_str_representations(self):
         assert str(SquareType.DEFAULT) == "."
@@ -66,6 +68,7 @@ class TestSquareType:
 
 # ── Move ─────────────────────────────────────────────────────────────────────
 
+
 class TestMove:
     def test_move_initialization(self):
         m = Move(0, 5, ["A", "B", "C"], 10)
@@ -76,6 +79,7 @@ class TestMove:
 
 
 # ── Board ─────────────────────────────────────────────────────────────────────
+
 
 class TestBoard:
     def test_board_initialization(self):
@@ -103,9 +107,9 @@ class TestBoard:
         g = make_gaddag()
         b = Board(g)
         sq = b.square_types
-        assert sq[(0, 0)]   == SquareType.TRIPLE_WORD
-        assert sq[(0, 7)]   == SquareType.TRIPLE_WORD
-        assert sq[(7, 0)]   == SquareType.TRIPLE_WORD
+        assert sq[(0, 0)] == SquareType.TRIPLE_WORD
+        assert sq[(0, 7)] == SquareType.TRIPLE_WORD
+        assert sq[(7, 0)] == SquareType.TRIPLE_WORD
         assert sq[(14, 14)] == SquareType.TRIPLE_WORD
 
     def test_triple_letter_squares(self):
@@ -212,8 +216,16 @@ class TestAnchorPoints:
         anchors = b._anchor_points
         assert len(anchors) == 10
         expected = {
-            (7, 6), (8, 6), (9, 6), (10, 7), (9, 8),
-            (9, 9), (8, 10), (7, 9), (7, 8), (6, 7)
+            (7, 6),
+            (8, 6),
+            (9, 6),
+            (10, 7),
+            (9, 8),
+            (9, 9),
+            (8, 10),
+            (7, 9),
+            (7, 8),
+            (6, 7),
         }
         for a in expected:
             assert a in anchors

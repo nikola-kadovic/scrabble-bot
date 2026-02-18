@@ -124,7 +124,7 @@ class TestGaddag:
             g.add_word("A")
 
     def test_build_from_file(self):
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".txt") as f:
             f.write("CAT\nDOG\nBAT\n")
             tmp = f.name
         try:
@@ -137,8 +137,9 @@ class TestGaddag:
     def test_cache_save_and_load(self):
         cache_dir = "temp_test_cache"
         # Build a small wordlist file
-        with tempfile.NamedTemporaryFile(mode='w', delete=False,
-                                         suffix='.txt', prefix='wl_smoke_') as f:
+        with tempfile.NamedTemporaryFile(
+            mode="w", delete=False, suffix=".txt", prefix="wl_smoke_"
+        ) as f:
             f.write("CAT\nDOG\n")
             tmp = f.name
 

@@ -9,12 +9,11 @@ import os
 
 
 def main():
-    gaddag = Gaddag(
-        wordlist_path=os.path.join(
-            'dictionary',
-            'nwl_2023.txt'))
+    gaddag = Gaddag()
     # build_gaddag() will automatically check for cache and use it if available
-    gaddag.build_gaddag(use_cache=True)
+    gaddag.build_from_file(
+        wordlist_path=os.path.join("dictionary", "nwl_2023.txt"), use_cache=True
+    )
 
     print("done")
 

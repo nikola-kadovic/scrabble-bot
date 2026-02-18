@@ -1,6 +1,7 @@
 """
 scrabble_bot — re-exports everything from the C++ extension.
 """
+
 from scrabble_bot._cpp_ext import (  # noqa: F401
     # Constants
     DELIMETER,
