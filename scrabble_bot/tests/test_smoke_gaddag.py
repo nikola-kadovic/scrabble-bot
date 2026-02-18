@@ -22,7 +22,7 @@ class TestDelimiter:
     def test_delimiter_value(self):
         assert DELIMETER == "◇"
         assert DELIMITER == "◇"
-        assert len(DELIMETER) == 3  # 3-byte UTF-8
+        assert len(DELIMETER) == 1
 
     def test_delimiter_aliases_match(self):
         assert DELIMETER == DELIMITER

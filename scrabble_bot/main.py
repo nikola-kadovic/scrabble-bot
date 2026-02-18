@@ -1,21 +1,40 @@
-from gaddag.gaddag import Gaddag
-import sys
 import os
 
-# Add quackle bindings to Python path
-# bindings_path = os.path.join(os.path.dirname(__file__), 'quackle', 'bindings', 'python3')
-# if bindings_path not in sys.path:
-#     sys.path.insert(0, bindings_path)
+from scrabble_bot._cpp_ext import Board, Gaddag, Letter, char_to_letter
 
 
 def main():
     gaddag = Gaddag()
-    # build_gaddag() will automatically check for cache and use it if available
     gaddag.build_from_file(
         wordlist_path=os.path.join("dictionary", "nwl_2023.txt"), use_cache=True
     )
 
-    print("done")
+    board = Board(gaddag)
+
+    # First move: HELLO horizontally through center (7, 7)
+    board.place_word(
+        [char_to_letter(c) for c in "HELLO"],
+        (7, 5),  # so HELLO spans cols 5–9, row 7, crossing center (7,7)
+        vertical=False,
+    )
+
+
+    # Second move: BE vertically, crossing the E in HELLO
+    board.place_word(
+        [Letter.B, Letter.E],
+        (6, 6),
+        vertical=True,
+    )
+
+    # Third move: ALE vertically at col 8, crossing the L in HELLO
+    board.place_word(
+        [Letter.A, Letter.L, Letter.E],
+        (6, 8),
+        vertical=True,
+    )
+
+    print(board)
+    print("Done.")
 
 
 if __name__ == "__main__":

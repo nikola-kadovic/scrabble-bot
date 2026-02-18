@@ -388,6 +388,25 @@ void Board::update_anchor_points(int r1, int c1, int r2, int c2) {
 // ─── to_string ────────────────────────────────────────────────────────────────
 
 std::string Board::to_string() const {
+    // ANSI color codes
+    const std::string RED        = "\033[91m";  // Triple word
+    const std::string YELLOW     = "\033[93m";  // Double word
+    const std::string LIGHT_BLUE = "\033[96m";  // Double letter
+    const std::string DARK_BLUE  = "\033[94m";  // Triple letter
+    const std::string GRAY       = "\033[90m";  // Default empty
+    const std::string BOLD       = "\033[1m";   // Placed letters
+    const std::string RESET      = "\033[0m";
+
+    auto square_color = [&](SquareType t) -> const std::string& {
+        switch (t) {
+        case SquareType::TRIPLE_WORD:   return RED;
+        case SquareType::DOUBLE_WORD:   return YELLOW;
+        case SquareType::DOUBLE_LETTER: return LIGHT_BLUE;
+        case SquareType::TRIPLE_LETTER: return DARK_BLUE;
+        default:                        return GRAY;
+        }
+    };
+
     auto square_char = [](SquareType t) -> char {
         switch (t) {
         case SquareType::TRIPLE_WORD:   return 'W';
@@ -399,18 +418,53 @@ std::string Board::to_string() const {
     };
 
     std::ostringstream out;
+
+    // Header: column numbers
+    out << "   ";
+    for (int c = 0; c < BOARD_COLS; c++) {
+        char buf[4];
+        std::snprintf(buf, sizeof(buf), "%2d", c);
+        out << buf;
+        if (c < BOARD_COLS - 1) out << ' ';
+    }
+    out << '\n';
+
+    // Separator line
+    out << "   " << std::string(BOARD_COLS * 3 - 1, '-') << '\n';
+
+    // Board rows
     for (int r = 0; r < BOARD_ROWS; r++) {
+        char row_label[4];
+        std::snprintf(row_label, sizeof(row_label), "%2d", r);
+        out << row_label << '|';
+
         for (int c = 0; c < BOARD_COLS; c++) {
             Letter l = board[r][c];
+            out << ' ';
             if (l != Letter::BLANK) {
-                out << letter_to_char(l);
+                out << BOLD << letter_to_char(l) << RESET;
             } else {
-                out << square_char(square_types[r][c]);
+                out << square_color(square_types[r][c])
+                    << square_char(square_types[r][c])
+                    << RESET;
             }
             out << ' ';
         }
-        out << '\n';
+
+        out << '|' << row_label << '\n';
     }
+
+    // Footer separator and column numbers
+    out << "   " << std::string(BOARD_COLS * 3 - 1, '-') << '\n';
+    out << "   ";
+    for (int c = 0; c < BOARD_COLS; c++) {
+        char buf[4];
+        std::snprintf(buf, sizeof(buf), "%2d", c);
+        out << buf;
+        if (c < BOARD_COLS - 1) out << ' ';
+    }
+    out << '\n';
+
     return out.str();
 }
 

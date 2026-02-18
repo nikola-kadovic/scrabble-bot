@@ -163,6 +163,8 @@ class TestHorizontalCrossChecks:
         b.place_word([Letter.P, Letter.A], (7, 5), False)
 
         vcc = b._vertical_cross_checks
+        hcc = b._horizontal_cross_checks
+
         assert len(vcc[8][5]) == 1
         assert Letter.A in vcc[8][1]
         assert len(vcc[6][6]) == 1
@@ -170,11 +172,13 @@ class TestHorizontalCrossChecks:
         assert len(vcc[6][5]) == 0
         assert len(vcc[8][6]) == 0
 
-        hcc = b._horizontal_cross_checks
         assert len(hcc[7][4]) == 0
         assert len(hcc[7][7]) == 0
 
         b.place_word([Letter.A, Letter.B, Letter.L, Letter.E], (7, 8), False)
+
+        vcc = b._vertical_cross_checks
+        hcc = b._horizontal_cross_checks
 
         assert len(hcc[7][7]) == 2
         assert Letter.R in hcc[7][7]
