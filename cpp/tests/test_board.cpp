@@ -33,10 +33,10 @@ TEST_CASE("Board has 225 square types", "[board]") {
     CHECK(count == 225);
 }
 
-TEST_CASE("Board center square is DEFAULT before first move", "[board]") {
+TEST_CASE("Board center square is DOUBLE_WORD before first move", "[board]") {
     auto g = make_gaddag({});
     Board b(g);
-    CHECK(b.square_types[7][7] == SquareType::DEFAULT);
+    CHECK(b.square_types[7][7] == SquareType::DOUBLE_WORD);
 }
 
 TEST_CASE("Board corners are TRIPLE_WORD", "[board]") {
@@ -168,4 +168,163 @@ TEST_CASE("Board place_word throws on out of bounds", "[board]") {
     CHECK_THROWS_AS(
         b.place_word({Letter::A, Letter::B, Letter::C}, {7, 14}, false),
         std::invalid_argument);
+}
+
+// ── Scoring tests ──────────────────────────────────────────────────────────
+
+// 1. Baseline: DWS at center doubles the word.
+// RATE horizontal at (7,5): R(7,5)=DEFAULT, A(7,6)=DEFAULT, T(7,7)=DWS,
+// E(7,8)=DEFAULT. word_score=4, multiplier=2 → 8.
+TEST_CASE("Scoring: RATE horizontal, DWS at center", "[scoring]") {
+    auto g = make_gaddag({});
+    Board b(g);
+    int score = b.place_word(
+        {Letter::R, Letter::A, Letter::T, Letter::E}, {7, 5}, false);
+    CHECK(score == 8);
+}
+
+// 2. DLS doubles one letter, DWS at center.
+// TRACE horizontal at (7,3): T(7,3)=DLS(2), R(7,4)=1, A(7,5)=1, C(7,6)=3,
+// E(7,7)=DWS. word_score=8, multiplier=2 → 16.
+TEST_CASE("Scoring: TRACE horizontal, DLS + DWS at center", "[scoring]") {
+    auto g = make_gaddag({});
+    Board b(g);
+    int score = b.place_word(
+        {Letter::T, Letter::R, Letter::A, Letter::C, Letter::E}, {7, 3}, false);
+    CHECK(score == 16);
+}
+
+// 3. TLS triples one letter on a second move (already-placed tile skipped).
+// Setup: ACT horizontal at (7,5) → A(1)+C(3)+T(7,7,DWS→1) * 2 = 10.
+// Move: MIA vertical at (5,5): M(5,5)=TLS(9), I(6,5)=1, A(7,5)=pre-placed.
+// word_score=10, multiplier=1 → 10.
+TEST_CASE("Scoring: MIA vertical, TLS + pre-placed tile skip", "[scoring]") {
+    auto g = make_gaddag({});
+    Board b(g);
+    b.place_word({Letter::A, Letter::C, Letter::T}, {7, 5}, false); // setup
+    int score = b.place_word(
+        {Letter::M, Letter::I, Letter::A}, {5, 5}, true);
+    CHECK(score == 10);
+}
+
+// 4. DWS doubles whole word on a second move (already-placed tile skipped).
+// Setup: ACE horizontal at (7,4) → 5.
+// Move: YOGA vertical at (4,4): Y(4,4)=DWS(4,×2), O(5,4)=1, G(6,4)=2,
+// A(7,4)=pre-placed. word_score=7, multiplier=2 → 14.
+TEST_CASE("Scoring: YOGA vertical, DWS + pre-placed tile skip", "[scoring]") {
+    auto g = make_gaddag({});
+    Board b(g);
+    b.place_word({Letter::A, Letter::C, Letter::E}, {7, 4}, false); // setup
+    int score = b.place_word(
+        {Letter::Y, Letter::O, Letter::G, Letter::A}, {4, 4}, true);
+    CHECK(score == 14);
+}
+
+// 5. TWS × DLS + bingo bonus.
+// MIGRANT horizontal at (7,0): M(7,0)=TWS(3,×3), I(7,1)=1, G(7,2)=2,
+// R(7,3)=DLS(2), A(7,4)=1, N(7,5)=1, T(7,6)=1. word_score=11, ×3 + 50 = 83.
+TEST_CASE("Scoring: MIGRANT horizontal, TWS + DLS + bingo", "[scoring]") {
+    auto g = make_gaddag({});
+    Board b(g);
+    int score = b.place_word(
+        {Letter::M, Letter::I, Letter::G, Letter::R, Letter::A, Letter::N, Letter::T},
+        {7, 0}, false);
+    CHECK(score == 83);
+}
+
+// 6. Two DWS stack to ×4 + bingo.
+// Setup: A vertical at (7,7) → 2.
+// Move: DOUBLES horizontal at (4,4): D(4,4)=DWS(2,×2), O(1) U(1) B(3) L(1) E(1),
+// S(4,10)=DWS(1,×4). word_score=10, ×4 + 50 = 90.
+TEST_CASE("Scoring: DOUBLES horizontal, two DWS stack to x4 + bingo", "[scoring]") {
+    auto g = make_gaddag({});
+    Board b(g);
+    b.place_word({Letter::A}, {7, 7}, true); // setup: A at center (DWS)
+    int score = b.place_word(
+        {Letter::D, Letter::O, Letter::U, Letter::B, Letter::L, Letter::E, Letter::S},
+        {4, 4}, false);
+    CHECK(score == 90);
+}
+
+// 7. TWS × word + DLS on letter + bingo (vertical second move).
+// Setup: A vertical at (7,7) → 2.
+// Move: STOPPED vertical at (0,7): S(0,7)=TWS(1,×3), T(1,7)=1, O(2,7)=1,
+// P(3,7)=DLS(6), P(4,7)=3, E(5,7)=1, D(6,7)=2. word_score=15, ×3 + 50 = 95.
+TEST_CASE("Scoring: STOPPED vertical, TWS + DLS + bingo", "[scoring]") {
+    auto g = make_gaddag({});
+    Board b(g);
+    b.place_word({Letter::A}, {7, 7}, true); // setup: A at center (DWS)
+    int score = b.place_word(
+        {Letter::S, Letter::T, Letter::O, Letter::P, Letter::P, Letter::E, Letter::D},
+        {0, 7}, true);
+    CHECK(score == 95);
+}
+
+// 8. Bingo bonus with DWS at center (7-letter first move).
+// MIGRATE horizontal at (7,4): M(3)+I(1)+G(2) = 6 DEFAULT; R(7,7)=DWS(1,×2);
+// A(1)+T(1)+E(1) = 3 DEFAULT. word_score=10, ×2 + 50 = 70.
+TEST_CASE("Scoring: MIGRATE horizontal, DWS bingo", "[scoring]") {
+    auto g = make_gaddag({});
+    Board b(g);
+    int score = b.place_word(
+        {Letter::M, Letter::I, Letter::G, Letter::R, Letter::A, Letter::T, Letter::E},
+        {7, 4}, false);
+    CHECK(score == 70);
+}
+
+// 9. Pre-placed letters score zero; only the new tile is counted.
+// Setup: ACE horizontal at (7,5) → 10.
+// Move: ACES horizontal at (7,5): A C E pre-placed (skip), S(7,8)=DEFAULT(1).
+// word_score=1, multiplier=1 → 1.
+TEST_CASE("Scoring: ACES horizontal, overlap scores only new tile", "[scoring]") {
+    auto g = make_gaddag({});
+    Board b(g);
+    b.place_word({Letter::A, Letter::C, Letter::E}, {7, 5}, false); // setup
+    int score = b.place_word(
+        {Letter::A, Letter::C, Letter::E, Letter::S}, {7, 5}, false);
+    CHECK(score == 1);
+}
+
+// 10. Cross-word formed below a new horizontal tile.
+// Move 1: AT vertical at (6,7): A(6,7)=DEFAULT(1), T(7,7)=DWS(1,×2) → 4.
+// Move 2: SO horizontal at (5,6): S(5,6)=DEFAULT(1); O(5,7)=DEFAULT(1) +
+// cross below: A(6,7)+T(7,7)=2, plus O contribution=1 → additional=3.
+// word_score=2, multiplier=1, additional=3 → 5.
+TEST_CASE("Scoring: SO horizontal, cross-word below from vertical tiles", "[scoring]") {
+    auto g = make_gaddag({});
+    Board b(g);
+    b.place_word({Letter::A, Letter::T}, {6, 7}, true); // setup: AT vertical
+    int score = b.place_word(
+        {Letter::S, Letter::O}, {5, 6}, false);
+    CHECK(score == 5);
+}
+
+// 11. Cross-word on the right side of a new vertical tile (tests fixed bug).
+// Move 1: X vertical at (7,7) → DWS → 16.
+// Move 2: ACE horizontal at (6,8): A(6,8)=DLS(2), C(6,9)=3, E(6,10)=1 → 6.
+// Move 3: BA vertical at (5,7): B(5,7)=DEFAULT(3); A(6,7)=DEFAULT(1) +
+// cross right: A(6,8)+C(6,9)+E(6,10)=5, plus A contribution=1 → additional=6.
+// word_score=4, multiplier=1, additional=6 → 10.
+TEST_CASE("Scoring: BA vertical, cross-word on right side", "[scoring]") {
+    auto g = make_gaddag({});
+    Board b(g);
+    b.place_word({Letter::X}, {7, 7}, true);                            // X at center
+    b.place_word({Letter::A, Letter::C, Letter::E}, {6, 8}, false);     // ACE horizontal
+    int score = b.place_word(
+        {Letter::B, Letter::A}, {5, 7}, true);
+    CHECK(score == 10);
+}
+
+// 12. Cross-word on the left side of a new vertical tile.
+// Move 1: ACE horizontal at (7,4): A(7,4)=1, C(7,5)=3, E(7,6)=1 → 5.
+// Move 2: BA vertical at (6,7): B(6,7)=DEFAULT(3); A(7,7)=DEFAULT(1) +
+// cross left: E(7,6)+C(7,5)+A(7,4)=5, plus A contribution=1 → additional=6.
+// word_score=4, multiplier=1, additional=6 → 10.
+TEST_CASE("Scoring: BA vertical, cross-word on left side", "[scoring]") {
+    auto g = make_gaddag({});
+    Board b(g);
+    b.place_word({Letter::A, Letter::C, Letter::E}, {7, 4}, false); // ACE horizontal
+    int score = b.place_word(
+        {Letter::B, Letter::A}, {6, 7}, true);
+    CHECK(score == 10);
 }

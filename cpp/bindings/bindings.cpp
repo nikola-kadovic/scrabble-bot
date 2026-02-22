@@ -254,7 +254,8 @@ PYBIND11_MODULE(_cpp_ext, m) {
              py::tuple starting_point, bool vertical) {
             int row = starting_point[0].cast<int>();
             int col = starting_point[1].cast<int>();
-            b.place_word(word, {row, col}, vertical);
+            int score = b.place_word(word, {row, col}, vertical);
+            return score;
           },
           py::arg("word"), py::arg("starting_point"), py::arg("vertical"))
       .def("__str__", &Board::to_string);

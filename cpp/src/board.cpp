@@ -54,19 +54,15 @@ void Board::build_square_types() {
         SquareType::DOUBLE_WORD;
   }
 
-  // Center square: DWS only on first move — set it now, place_word will clear
-  // it
-  square_types[7][7] = SquareType::DOUBLE_WORD;
-
   // Triple word squares (every 7 squares from 0)
   for (int i = 0; i < BOARD_ROWS; i += 7) {
     for (int j = 0; j < BOARD_COLS; j += 7) {
       square_types[i][j] = SquareType::TRIPLE_WORD;
     }
   }
-  // Center overridden back to DEFAULT (the TWS loop would hit (7,7) at step
-  // 7,7)
-  square_types[7][7] = SquareType::DEFAULT;
+  // Restore center to DOUBLE_WORD (the TWS loop above would have overridden it);
+  // place_word will clear it to DEFAULT after the first move.
+  square_types[7][7] = SquareType::DOUBLE_WORD;
 
   // Double letter squares (4 quadrant symmetry from paper positions)
   const int dx[] = {1, 1, -1, -1};
@@ -401,6 +397,8 @@ int Board::place_word_vertically(const std::vector<Letter> &word, int sp_row,
         default:
           throw std::runtime_error("square type unrecognized");
         }
+
+        additional_words_score += additional_word_score;
       }
     }
 
