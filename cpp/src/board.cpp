@@ -645,6 +645,7 @@ std::string Board::to_string() const {
   const std::string LIGHT_BLUE = "\033[96m"; // Double letter
   const std::string DARK_BLUE = "\033[94m";  // Triple letter
   const std::string GRAY = "\033[90m";       // Default empty
+  const std::string GREEN = "\033[92m";      // Anchor points
   const std::string BOLD = "\033[1m";        // Placed letters
   const std::string RESET = "\033[0m";
 
@@ -705,6 +706,8 @@ std::string Board::to_string() const {
       out << ' ';
       if (l != Letter::BLANK) {
         out << BOLD << letter_to_char(l) << RESET;
+      } else if (anchor_points.count(Point{r, c})) {
+        out << GREEN << '.' << RESET;
       } else {
         out << square_color(square_types[r][c])
             << square_char(square_types[r][c]) << RESET;

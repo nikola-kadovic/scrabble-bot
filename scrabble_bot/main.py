@@ -12,26 +12,32 @@ def main():
     board = Board(gaddag)
 
     # First move: HELLO horizontally through center (7, 7)
-    board.place_word(
+    score1 = board.place_word(
         [char_to_letter(c) for c in "HELLO"],
         (7, 5),  # so HELLO spans cols 5–9, row 7, crossing center (7,7)
         vertical=False,
     )
 
+    print(f"score 1: {score1}")
+
 
     # Second move: BE vertically, crossing the E in HELLO
-    board.place_word(
+    score2 = board.place_word(
         [Letter.B, Letter.E],
         (6, 6),
         vertical=True,
     )
 
+    print(f"score 2: {score2}")
+
     # Third move: ALE vertically at col 8, crossing the L in HELLO
-    board.place_word(
+    score3 = board.place_word(
         [Letter.A, Letter.L, Letter.E],
         (6, 8),
         vertical=True,
     )
+
+    print(f"score 3: {score3}")
 
     print(board)
     print("Done.")
