@@ -57,8 +57,9 @@ public:
 
   // Place a word (list of Letters) starting at (row,col), horizontal or
   // vertical. Throws std::invalid_argument on invalid placement.
-  void place_word(const std::vector<Letter> &word,
-                  std::pair<int, int> starting_point, bool vertical);
+  // Returns the points earned from placing the word.
+  int place_word(const std::vector<Letter> &word,
+                 std::pair<int, int> starting_point, bool vertical);
 
   std::string to_string() const;
 
@@ -68,9 +69,9 @@ private:
 
   void build_square_types();
 
-  void place_word_horizontally(const std::vector<Letter> &word, int row,
-                               int col);
-  void place_word_vertically(const std::vector<Letter> &word, int row, int col);
+  int place_word_horizontally(const std::vector<Letter> &word, int row,
+                              int col);
+  int place_word_vertically(const std::vector<Letter> &word, int row, int col);
 
   void update_horizontal_cross_checks(int row, int col);
   void update_vertical_cross_checks(int row, int col);

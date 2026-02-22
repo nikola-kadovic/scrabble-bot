@@ -106,8 +106,8 @@ void Board::build_square_types() {
 // ─── place_word (public)
 // ───────────────────────────────────────────────────────
 
-void Board::place_word(const std::vector<Letter> &word,
-                       std::pair<int, int> starting_point, bool vertical) {
+int Board::place_word(const std::vector<Letter> &word,
+                      std::pair<int, int> starting_point, bool vertical) {
   int row = starting_point.first;
   int col = starting_point.second;
 
@@ -115,23 +115,27 @@ void Board::place_word(const std::vector<Letter> &word,
     throw std::invalid_argument("Starting point is out of bounds");
   }
 
+  int score;
+
   if (vertical) {
-    place_word_vertically(word, row, col);
+    score = place_word_vertically(word, row, col);
   } else {
-    place_word_horizontally(word, row, col);
+    score = place_word_horizontally(word, row, col);
   }
 
   if (first_move_) {
     first_move_ = false;
     square_types[7][7] = SquareType::DEFAULT;
   }
+
+  return score;
 }
 
 // ─── place_word_horizontally
 // ──────────────────────────────────────────────────
 
-void Board::place_word_horizontally(const std::vector<Letter> &word, int sp_row,
-                                    int sp_col) {
+int Board::place_word_horizontally(const std::vector<Letter> &word, int sp_row,
+                                   int sp_col) {
   int len = static_cast<int>(word.size());
   if (sp_col + len > BOARD_COLS) {
     throw std::invalid_argument(
@@ -149,7 +153,11 @@ void Board::place_word_horizontally(const std::vector<Letter> &word, int sp_row,
     }
   }
 
-  // Place letters
+  int word_score = 0;
+  int additional_words_score = 0;
+  int word_multiplier = 1;
+
+  // Place letters and compute score
   for (int i = 0; i < len; i++) {
     int r = sp_row;
     int c = sp_col + i;
@@ -157,6 +165,98 @@ void Board::place_word_horizontally(const std::vector<Letter> &word, int sp_row,
       throw std::invalid_argument(
           "Square already occupied by a different letter");
     }
+
+    if (board[r][c] == Letter::BLANK) {
+      switch (square_types[r][c]) {
+      case SquareType::DOUBLE_LETTER:
+        word_score += get_letter_score(word[i]) * 2;
+        break;
+      case SquareType::TRIPLE_LETTER:
+        word_score += get_letter_score(word[i]) * 3;
+        break;
+      case SquareType::DOUBLE_WORD:
+        word_score += get_letter_score(word[i]);
+        word_multiplier *= 2;
+        break;
+      case SquareType::TRIPLE_WORD:
+        word_score += get_letter_score(word[i]);
+        word_multiplier *= 3;
+        break;
+      case SquareType::DEFAULT:
+        word_score += get_letter_score(word[i]);
+        break;
+      default:
+        throw std::runtime_error("square type unrecognized");
+      }
+
+      // Check for another word above (vertical)
+      if (r > 0 && board[r - 1][c] != Letter::BLANK) {
+        int additional_word_score = 0;
+
+        for (int y = r - 1; y >= 0 && board[y][c] != Letter::BLANK; y--) {
+          additional_word_score += get_letter_score(board[y][c]);
+        }
+
+        switch (square_types[r][c]) {
+        case SquareType::DOUBLE_LETTER:
+          additional_word_score += get_letter_score(word[i]) * 2;
+          break;
+        case SquareType::TRIPLE_LETTER:
+          additional_word_score += get_letter_score(word[i]) * 3;
+          break;
+        case SquareType::DOUBLE_WORD:
+          additional_word_score += get_letter_score(word[i]);
+          additional_word_score *= 2;
+          break;
+        case SquareType::TRIPLE_WORD:
+          additional_word_score += get_letter_score(word[i]);
+          additional_word_score *= 3;
+          break;
+        case SquareType::DEFAULT:
+          additional_word_score += get_letter_score(word[i]);
+          break;
+        default:
+          throw std::runtime_error("square type unrecognized");
+        }
+
+        additional_words_score += additional_word_score;
+      }
+
+      // Check for another word below (vertical)
+      if (r < BOARD_ROWS - 1 && board[r + 1][c] != Letter::BLANK) {
+        int additional_word_score = 0;
+
+        for (int y = r + 1; y < BOARD_ROWS && board[y][c] != Letter::BLANK;
+             y++) {
+          additional_word_score += get_letter_score(board[y][c]);
+        }
+
+        switch (square_types[r][c]) {
+        case SquareType::DOUBLE_LETTER:
+          additional_word_score += get_letter_score(word[i]) * 2;
+          break;
+        case SquareType::TRIPLE_LETTER:
+          additional_word_score += get_letter_score(word[i]) * 3;
+          break;
+        case SquareType::DOUBLE_WORD:
+          additional_word_score += get_letter_score(word[i]);
+          additional_word_score *= 2;
+          break;
+        case SquareType::TRIPLE_WORD:
+          additional_word_score += get_letter_score(word[i]);
+          additional_word_score *= 3;
+          break;
+        case SquareType::DEFAULT:
+          additional_word_score += get_letter_score(word[i]);
+          break;
+        default:
+          throw std::runtime_error("square type unrecognized");
+        }
+
+        additional_words_score += additional_word_score;
+      }
+    }
+
     board[r][c] = word[i];
   }
 
@@ -175,13 +275,18 @@ void Board::place_word_horizontally(const std::vector<Letter> &word, int sp_row,
   }
 
   update_anchor_points(sp_row, sp_col, sp_row, sp_col + len - 1);
+
+  int final_score = (word_multiplier * word_score) + additional_words_score +
+                    (len == 7 ? 50 : 0);
+
+  return final_score;
 }
 
 // ─── place_word_vertically
 // ────────────────────────────────────────────────────
 
-void Board::place_word_vertically(const std::vector<Letter> &word, int sp_row,
-                                  int sp_col) {
+int Board::place_word_vertically(const std::vector<Letter> &word, int sp_row,
+                                 int sp_col) {
   int len = static_cast<int>(word.size());
   if (sp_row + len > BOARD_ROWS) {
     throw std::invalid_argument(
@@ -197,6 +302,10 @@ void Board::place_word_vertically(const std::vector<Letter> &word, int sp_row,
     }
   }
 
+  int word_score = 0;
+  int additional_words_score = 0;
+  int word_multiplier = 1;
+
   // Place letters
   for (int i = 0; i < len; i++) {
     int r = sp_row + i;
@@ -205,6 +314,96 @@ void Board::place_word_vertically(const std::vector<Letter> &word, int sp_row,
       throw std::invalid_argument(
           "Square already occupied by a different letter");
     }
+
+    if (board[r][c] == Letter::BLANK) {
+      switch (square_types[r][c]) {
+      case SquareType::DOUBLE_LETTER:
+        word_score += get_letter_score(word[i]) * 2;
+        break;
+      case SquareType::TRIPLE_LETTER:
+        word_score += get_letter_score(word[i]) * 3;
+        break;
+      case SquareType::DOUBLE_WORD:
+        word_score += get_letter_score(word[i]);
+        word_multiplier *= 2;
+        break;
+      case SquareType::TRIPLE_WORD:
+        word_score += get_letter_score(word[i]);
+        word_multiplier *= 3;
+        break;
+      case SquareType::DEFAULT:
+        word_score += get_letter_score(word[i]);
+        break;
+      default:
+        throw std::runtime_error("square type unrecognized");
+      }
+
+      // Check for another word on left
+      if (c > 0 && board[r][c - 1] != Letter::BLANK) {
+        int additional_word_score = 0;
+
+        for (int x = c - 1; x >= 0 && board[r][x] != Letter::BLANK; x--) {
+          additional_word_score += get_letter_score(board[r][x]);
+        }
+
+        switch (square_types[r][c]) {
+        case SquareType::DOUBLE_LETTER:
+          additional_word_score += get_letter_score(word[i]) * 2;
+          break;
+        case SquareType::TRIPLE_LETTER:
+          additional_word_score += get_letter_score(word[i]) * 3;
+          break;
+        case SquareType::DOUBLE_WORD:
+          additional_word_score += get_letter_score(word[i]);
+          additional_word_score *= 2;
+          break;
+        case SquareType::TRIPLE_WORD:
+          additional_word_score += get_letter_score(word[i]);
+          additional_word_score *= 3;
+          break;
+        case SquareType::DEFAULT:
+          additional_word_score += get_letter_score(word[i]);
+          break;
+        default:
+          throw std::runtime_error("square type unrecognized");
+        }
+
+        additional_words_score += additional_word_score;
+      }
+
+      // Check for another word on right
+      if (c < BOARD_COLS - 1 && board[r][c + 1] != Letter::BLANK) {
+        int additional_word_score = 0;
+
+        for (int x = c + 1; x < BOARD_COLS && board[r][x] != Letter::BLANK;
+             x++) {
+          additional_word_score += get_letter_score(board[r][x]);
+        }
+
+        switch (square_types[r][c]) {
+        case SquareType::DOUBLE_LETTER:
+          additional_word_score += get_letter_score(word[i]) * 2;
+          break;
+        case SquareType::TRIPLE_LETTER:
+          additional_word_score += get_letter_score(word[i]) * 3;
+          break;
+        case SquareType::DOUBLE_WORD:
+          additional_word_score += get_letter_score(word[i]);
+          additional_word_score *= 2;
+          break;
+        case SquareType::TRIPLE_WORD:
+          additional_word_score += get_letter_score(word[i]);
+          additional_word_score *= 3;
+          break;
+        case SquareType::DEFAULT:
+          additional_word_score += get_letter_score(word[i]);
+          break;
+        default:
+          throw std::runtime_error("square type unrecognized");
+        }
+      }
+    }
+
     board[r][c] = word[i];
   }
 
@@ -223,6 +422,11 @@ void Board::place_word_vertically(const std::vector<Letter> &word, int sp_row,
   }
 
   update_anchor_points(sp_row, sp_col, sp_row + len - 1, sp_col);
+
+  int final_score = (word_multiplier * word_score) + additional_words_score +
+                    (len == 7 ? 50 : 0);
+
+  return final_score;
 }
 
 // ─── Cross-check update helpers
