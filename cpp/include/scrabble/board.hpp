@@ -61,6 +61,11 @@ public:
   int place_word(const std::vector<Letter> &word,
                  std::pair<int, int> starting_point, bool vertical);
 
+  // Compute the score for placing word at (row, col), horizontal or vertical,
+  // without modifying the board. Assumes the placement is valid.
+  int calculate_score(const std::vector<Letter> &word, int row, int col,
+                      bool vertical) const;
+
   std::string to_string() const;
 
   // Debugging: scans every row and column for contiguous tile runs and returns

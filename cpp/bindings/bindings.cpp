@@ -258,6 +258,15 @@ PYBIND11_MODULE(_cpp_ext, m) {
             return score;
           },
           py::arg("word"), py::arg("starting_point"), py::arg("vertical"))
+      .def(
+          "calculate_score",
+          [](const Board &b, const std::vector<Letter> &word,
+             py::tuple starting_point, bool vertical) {
+            int row = starting_point[0].cast<int>();
+            int col = starting_point[1].cast<int>();
+            return b.calculate_score(word, row, col, vertical);
+          },
+          py::arg("word"), py::arg("starting_point"), py::arg("vertical"))
       .def("__str__", &Board::to_string)
       .def("validate_board", &Board::validate_board,
            "Scan every row and column for contiguous tile runs and return a "
