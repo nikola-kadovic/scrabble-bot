@@ -258,7 +258,11 @@ PYBIND11_MODULE(_cpp_ext, m) {
             return score;
           },
           py::arg("word"), py::arg("starting_point"), py::arg("vertical"))
-      .def("__str__", &Board::to_string);
+      .def("__str__", &Board::to_string)
+      .def("validate_board", &Board::validate_board,
+           "Scan every row and column for contiguous tile runs and return a "
+           "list of invalid word strings. Empty list means the board is fully "
+           "valid.");
 
   // ── Free helpers ───────────────────────────────────────────────────────────
   m.def(

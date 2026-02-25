@@ -63,6 +63,11 @@ public:
 
   std::string to_string() const;
 
+  // Debugging: scans every row and column for contiguous tile runs and returns
+  // the string representation of any runs that are not valid dictionary words.
+  // An empty result means the board is fully valid.
+  std::vector<std::string> validate_board() const;
+
 private:
   std::shared_ptr<Gaddag> dict_;
   bool first_move_;
@@ -84,6 +89,9 @@ private:
   static bool in_bounds(int row, int col) noexcept {
     return row >= 0 && row < BOARD_ROWS && col >= 0 && col < BOARD_COLS;
   }
+
+  // Returns true if `word` exists in the dictionary via GADDAG traversal.
+  bool is_word_valid(const std::vector<Letter> &word) const;
 };
 
 } // namespace scrabble

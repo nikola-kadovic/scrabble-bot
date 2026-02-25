@@ -233,3 +233,37 @@ class TestAnchorPoints:
         }
         for a in expected:
             assert a in anchors
+
+
+class TestValidateBoard:
+    def test_empty_board_is_valid(self):
+        g = make_gaddag("CAT")
+        b = Board(g)
+        assert b.validate_board() == []
+
+    def test_valid_word_is_valid(self):
+        g = make_gaddag("CAT")
+        b = Board(g)
+        b.place_word([Letter.C, Letter.A, Letter.T], (7, 7), False)
+        assert b.validate_board() == []
+
+    def test_valid_vertical_word_is_valid(self):
+        g = make_gaddag("CAT")
+        b = Board(g)
+        b.place_word([Letter.C, Letter.A, Letter.T], (7, 7), True)
+        assert b.validate_board() == []
+
+    def test_valid_crossing_words(self):
+        # CAT horizontal: C@(7,7) A@(7,8) T@(7,9)
+        # ACT vertical:   A@(5,9) C@(6,9) T@(7,9) -- T shared
+        g = make_gaddag("CAT", "ACT")
+        b = Board(g)
+        b.place_word([Letter.C, Letter.A, Letter.T], (7, 7), False)
+        b.place_word([Letter.A, Letter.C, Letter.T], (5, 9), True)
+        assert b.validate_board() == []
+
+    def test_returns_list(self):
+        g = make_gaddag("CAT")
+        b = Board(g)
+        result = b.validate_board()
+        assert isinstance(result, list)

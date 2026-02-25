@@ -328,3 +328,69 @@ TEST_CASE("Scoring: BA vertical, cross-word on left side", "[scoring]") {
         {Letter::B, Letter::A}, {6, 7}, true);
     CHECK(score == 10);
 }
+
+// ── validate_board tests ───────────────────────────────────────────────────
+
+TEST_CASE("validate_board: empty board returns no invalid words", "[validate_board]") {
+    auto g = make_gaddag({"CAT"});
+    Board b(g);
+    CHECK(b.validate_board().empty());
+}
+
+TEST_CASE("validate_board: valid horizontal word", "[validate_board]") {
+    auto g = make_gaddag({"CAT"});
+    Board b(g);
+    b.place_word({Letter::C, Letter::A, Letter::T}, {7, 7}, false);
+    CHECK(b.validate_board().empty());
+}
+
+TEST_CASE("validate_board: valid vertical word", "[validate_board]") {
+    auto g = make_gaddag({"CAT"});
+    Board b(g);
+    b.place_word({Letter::C, Letter::A, Letter::T}, {7, 7}, true);
+    CHECK(b.validate_board().empty());
+}
+
+TEST_CASE("validate_board: valid crossing words", "[validate_board]") {
+    // CAT horizontal: C@(7,7) A@(7,8) T@(7,9)
+    // ACT vertical:   A@(5,9) C@(6,9) T@(7,9)  -- T is shared
+    auto g = make_gaddag({"CAT", "ACT"});
+    Board b(g);
+    b.place_word({Letter::C, Letter::A, Letter::T}, {7, 7}, false);
+    b.place_word({Letter::A, Letter::C, Letter::T}, {5, 9}, true);
+    CHECK(b.validate_board().empty());
+}
+
+TEST_CASE("validate_board: detects invalid horizontal word", "[validate_board]") {
+    // Bypass place_word to put a non-word sequence directly on the board
+    auto g = make_gaddag({"CAT"});
+    Board b(g);
+    b.board[7][7] = Letter::X;
+    b.board[7][8] = Letter::Q;
+    b.board[7][9] = Letter::Z;
+    auto invalid = b.validate_board();
+    CHECK(invalid.size() == 1);
+    CHECK(invalid[0] == "XQZ");
+}
+
+TEST_CASE("validate_board: detects invalid vertical word", "[validate_board]") {
+    auto g = make_gaddag({"CAT"});
+    Board b(g);
+    b.board[5][3] = Letter::Z;
+    b.board[6][3] = Letter::X;
+    auto invalid = b.validate_board();
+    CHECK(invalid.size() == 1);
+    CHECK(invalid[0] == "ZX");
+}
+
+TEST_CASE("validate_board: mix of valid and invalid words", "[validate_board]") {
+    // CAT (valid) via place_word + XQ (invalid) injected directly
+    auto g = make_gaddag({"CAT"});
+    Board b(g);
+    b.place_word({Letter::C, Letter::A, Letter::T}, {7, 7}, false);
+    b.board[0][0] = Letter::X;
+    b.board[0][1] = Letter::Q;
+    auto invalid = b.validate_board();
+    CHECK(invalid.size() == 1);
+    CHECK(invalid[0] == "XQ");
+}

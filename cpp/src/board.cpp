@@ -635,6 +635,87 @@ void Board::update_anchor_points(int r1, int c1, int r2, int c2) {
   }
 }
 
+// ─── is_word_valid
+// ───────────────────────────────────────────────────────────────
+//
+// Traverses the C◇... GADDAG path: root → word[0] → DELIMITER → word[1] →
+// ... → word[n-2], then checks word[n-1] in letters_that_make_a_word.
+
+bool Board::is_word_valid(const std::vector<Letter> &word) const {
+  int n = static_cast<int>(word.size());
+  if (n < 2)
+    return false;
+
+  auto state = dict_->root->get_next_state(letter_to_key(word[0]));
+  if (!state)
+    return false;
+
+  state = state->get_next_state(DELIMITER);
+  if (!state)
+    return false;
+
+  for (int i = 1; i <= n - 2; i++) {
+    state = state->get_next_state(letter_to_key(word[i]));
+    if (!state)
+      return false;
+  }
+
+  char last = letter_to_char(word[n - 1]);
+  return state->letters_that_make_a_word.count(last) > 0;
+}
+
+// ─── validate_board
+// ──────────────────────────────────────────────────────────────
+//
+// Scans every row and column for contiguous tile runs of length >= 2 and
+// returns the string representation of any that are not valid dictionary words.
+
+std::vector<std::string> Board::validate_board() const {
+  std::vector<std::string> invalid_words;
+
+  auto check_run = [&](const std::vector<Letter> &run) {
+    if (run.size() < 2)
+      return;
+    if (!is_word_valid(run)) {
+      std::string s;
+      s.reserve(run.size());
+      for (Letter l : run)
+        s += letter_to_char(l);
+      invalid_words.push_back(std::move(s));
+    }
+  };
+
+  // Scan rows
+  for (int r = 0; r < BOARD_ROWS; r++) {
+    std::vector<Letter> run;
+    for (int c = 0; c < BOARD_COLS; c++) {
+      if (board[r][c] != Letter::BLANK) {
+        run.push_back(board[r][c]);
+      } else {
+        check_run(run);
+        run.clear();
+      }
+    }
+    check_run(run);
+  }
+
+  // Scan columns
+  for (int c = 0; c < BOARD_COLS; c++) {
+    std::vector<Letter> run;
+    for (int r = 0; r < BOARD_ROWS; r++) {
+      if (board[r][c] != Letter::BLANK) {
+        run.push_back(board[r][c]);
+      } else {
+        check_run(run);
+        run.clear();
+      }
+    }
+    check_run(run);
+  }
+
+  return invalid_words;
+}
+
 // ─── to_string
 // ────────────────────────────────────────────────────────────────
 

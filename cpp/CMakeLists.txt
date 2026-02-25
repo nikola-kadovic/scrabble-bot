@@ -18,6 +18,8 @@ set_target_properties(_cpp_ext PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/scrabble_bot"
 )
 
+set_target_properties(scrabble_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 if (MSVC)
     target_compile_options(_cpp_ext PRIVATE /utf-8)
 endif()
