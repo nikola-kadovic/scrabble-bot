@@ -247,6 +247,12 @@ class TestValidateBoard:
         b.place_word([Letter.C, Letter.A, Letter.T], (7, 7), False)
         assert b.validate_board() == []
 
+    def test_invalid_word_is_invalid(self):
+        g = make_gaddag("CAT")
+        b = Board(g)
+        b.place_word([Letter.H, Letter.A, Letter.T], (7, 7), False)
+        assert b.validate_board() == ["HAT"]
+
     def test_valid_vertical_word_is_valid(self):
         g = make_gaddag("CAT")
         b = Board(g)
