@@ -73,6 +73,14 @@ Tracks:
 ### Move Generation (in progress)
 The backtracking algorithm using GADDAG traversal seeded from anchor points is
 not yet implemented (`get_all_valid_moves`).
+- Based on https://users.cs.northwestern.edu/~robby/uc-courses/22001-2008-winter/faster-scrabble-gordon.pdf
+- See "The move generation algorithm" section
+- This is a backtracking algorithm. Given a list of the letters you have, for each anchor point, find all traversals of the GADDAG that work on the board.
+- For each result, we should also have the score you'd gain by placing that word.
+- We return a list of all those possible moves, their scores, and the remaining letters you have.
+- This should be exposed in python bindings.
+- For now, let's just focus on correctness of the algorithm. But in the future, we can implement parallelized backtracking for a significant speedup.
+- For the future, not now: https://cs.uwaterloo.ca/~kdaudjee/DaudjeeJPDC.pdf
 
 ### Data Flow
 ```
