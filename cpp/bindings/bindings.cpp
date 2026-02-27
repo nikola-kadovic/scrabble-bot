@@ -2,6 +2,7 @@
 #include "scrabble/gaddag.hpp"
 #include "scrabble/letter.hpp"
 #include "scrabble/move.hpp"
+#include "scrabble/point.hpp"
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -93,18 +94,29 @@ PYBIND11_MODULE(_cpp_ext, m) {
       });
 
   // ── Move ───────────────────────────────────────────────────────────────────
+  py::class_<Point>(m, "Point")
+      .def(py::init<int, int>())
+      .def_readwrite("row", &Point::row)
+      .def_readwrite("col", &Point::col)
+      .def("__repr__", [](const Point &p) {
+        return "Point(" + std::to_string(p.row) + ", " +
+               std::to_string(p.col) + ")";
+      });
+
   py::class_<Move>(m, "Move")
-      .def(py::init<int, int, std::vector<std::string>, int>(),
-           py::arg("starting_index"), py::arg("ending_index"),
-           py::arg("letters"), py::arg("score"))
-      .def_readwrite("starting_index", &Move::starting_index)
-      .def_readwrite("ending_index", &Move::ending_index)
+      .def(py::init<Point, Point, std::vector<std::string>, int>(),
+           py::arg("start"), py::arg("end"), py::arg("letters"),
+           py::arg("score"))
+      .def_readwrite("start", &Move::start)
+      .def_readwrite("end", &Move::end)
       .def_readwrite("letters", &Move::letters)
       .def_readwrite("score", &Move::score)
       .def("__repr__", [](const Move &mv) {
-        return "Move(si=" + std::to_string(mv.starting_index) +
-               ", ei=" + std::to_string(mv.ending_index) +
-               ", score=" + std::to_string(mv.score) + ")";
+        return "Move(start=(" + std::to_string(mv.start.row) + "," +
+               std::to_string(mv.start.col) + "), end=(" +
+               std::to_string(mv.end.row) + "," +
+               std::to_string(mv.end.col) +
+               "), score=" + std::to_string(mv.score) + ")";
       });
 
   // ── State ──────────────────────────────────────────────────────────────────
@@ -271,7 +283,15 @@ PYBIND11_MODULE(_cpp_ext, m) {
       .def("validate_board", &Board::validate_board,
            "Scan every row and column for contiguous tile runs and return a "
            "list of invalid word strings. Empty list means the board is fully "
-           "valid.");
+           "valid.")
+      .def(
+          "get_all_valid_moves",
+          [](const Board &b, const std::vector<Letter> &rack) {
+            return b.get_all_valid_moves(rack);
+          },
+          py::arg("rack"),
+          "Returns all valid moves for the given rack as a list of Move "
+          "objects.");
 
   // ── Free helpers ───────────────────────────────────────────────────────────
   m.def(

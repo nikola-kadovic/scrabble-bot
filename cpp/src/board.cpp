@@ -23,6 +23,11 @@ Board::Board(std::shared_ptr<Gaddag> dictionary)
       vertical_cross_checks[r][c] = dict_letters;
     }
   }
+
+  // Seed the center square as the initial anchor point for the first move.
+  // update_anchor_points() called after place_word() will remove {7,7} (now
+  // occupied) and populate real neighbors.
+  anchor_points.insert(Point{7, 7});
 }
 
 // ─── Square type initialization

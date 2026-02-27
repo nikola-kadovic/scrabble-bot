@@ -2,6 +2,7 @@ add_library(scrabble_core STATIC
     src/letter.cpp
     src/gaddag.cpp
     src/board.cpp
+    src/move_gen.cpp
 )
 
 target_include_directories(scrabble_core PUBLIC include)

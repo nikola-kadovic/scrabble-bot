@@ -56,10 +56,12 @@ TEST_CASE("Board triple letter squares", "[board]") {
     CHECK(b.square_types[5][5]  == SquareType::TRIPLE_LETTER);
 }
 
-TEST_CASE("Board anchor points empty on init", "[board]") {
+TEST_CASE("Board anchor points seeded with center on init", "[board]") {
     auto g = make_gaddag({});
     Board b(g);
-    CHECK(b.anchor_points.empty());
+    // Constructor seeds {7,7} as the first-move anchor point.
+    CHECK(b.anchor_points.size() == 1);
+    CHECK(b.anchor_points.count(Point{7, 7}) == 1);
 }
 
 TEST_CASE("Board anchor points after horizontal word", "[board]") {

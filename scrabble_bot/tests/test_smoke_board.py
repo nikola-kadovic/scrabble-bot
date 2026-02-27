@@ -71,9 +71,12 @@ class TestSquareType:
 
 class TestMove:
     def test_move_initialization(self):
-        m = Move(0, 5, ["A", "B", "C"], 10)
-        assert m.starting_index == 0
-        assert m.ending_index == 5
+        from scrabble_bot._cpp_ext import Point
+        m = Move(Point(0, 0), Point(0, 5), ["A", "B", "C"], 10)
+        assert m.start.row == 0
+        assert m.start.col == 0
+        assert m.end.row == 0
+        assert m.end.col == 5
         assert m.letters == ["A", "B", "C"]
         assert m.score == 10
 
@@ -132,7 +135,8 @@ class TestBoard:
     def test_anchor_points_initial_empty(self):
         g = make_gaddag()
         b = Board(g)
-        assert len(b._anchor_points) == 0
+        # Constructor seeds center {7,7} as the first-move anchor point.
+        assert b._anchor_points == {(7, 7)}
 
 
 class TestHorizontalCrossChecks:

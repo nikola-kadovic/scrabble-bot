@@ -1,0 +1,326 @@
+#include "scrabble/board.hpp"
+#include "scrabble/gaddag.hpp"
+#include "scrabble/letter.hpp"
+#include "scrabble/point.hpp"
+
+#include <unordered_set>
+#include <vector>
+
+namespace scrabble {
+
+// ── File-local helpers ────────────────────────────────────────────────────────
+
+namespace {
+
+// Returns (gaddag_letter, is_blank) pairs to try for one rack tile.
+// For a normal tile: just {tile, false}.
+// For a blank:      {A,true}, {B,true}, ..., {Z,true}.
+std::vector<std::pair<Letter, bool>> candidates_for(Letter rack_tile) {
+  if (rack_tile != Letter::BLANK) {
+    return {{rack_tile, false}};
+  }
+  std::vector<std::pair<Letter, bool>> result;
+  result.reserve(26);
+  for (int i = 0; i < 26; i++) {
+    result.push_back({static_cast<Letter>(i), true});
+  }
+  return result;
+}
+
+// Remove one occurrence of `tile` from rack.
+std::vector<Letter> rack_minus(const std::vector<Letter> &rack, Letter tile) {
+  std::vector<Letter> result;
+  result.reserve(rack.size() > 0 ? rack.size() - 1 : 0);
+  bool removed = false;
+  for (Letter l : rack) {
+    if (!removed && l == tile) {
+      removed = true;
+      continue;
+    }
+    result.push_back(l);
+  }
+  return result;
+}
+
+// Returns deduplicated rack tiles (avoid processing the same tile type twice).
+std::vector<Letter> unique_rack_tiles(const std::vector<Letter> &rack) {
+  std::unordered_set<Letter> seen;
+  std::vector<Letter> result;
+  for (Letter l : rack) {
+    if (seen.insert(l).second) {
+      result.push_back(l);
+    }
+  }
+  return result;
+}
+
+} // namespace
+
+// ── Board private method implementations ──────────────────────────────────────
+
+const std::unordered_set<Letter> &
+Board::get_cross_checks_for(int r, int c, bool vertical) const {
+  // When generating horizontal moves, we need vertical cross-checks (a tile
+  // placed horizontally must form valid vertical words with its neighbors).
+  // Symmetrically, vertical moves use horizontal cross-checks.
+  return vertical ? horizontal_cross_checks[r][c] : vertical_cross_checks[r][c];
+}
+
+void Board::record_move(const std::vector<TileEntry> &left_part,
+                        const std::vector<TileEntry> &right_part, int anchor_r,
+                        int anchor_c, bool vertical,
+                        std::vector<Move> &results) const {
+  int dr = vertical ? 1 : 0;
+  int dc = vertical ? 0 : 1;
+  int num_left = static_cast<int>(left_part.size());
+  int total = num_left + static_cast<int>(right_part.size());
+
+  // Full word in order = reverse(left_part) + right_part
+  std::vector<Letter> word_letters;
+  word_letters.reserve(total);
+  std::vector<std::string> letters_str;
+  letters_str.reserve(total);
+
+  for (int i = num_left - 1; i >= 0; i--) {
+    word_letters.push_back(left_part[i].score_letter());
+    letters_str.push_back(left_part[i].letters_str());
+  }
+  for (const auto &t : right_part) {
+    word_letters.push_back(t.score_letter());
+    letters_str.push_back(t.letters_str());
+  }
+
+  int word_start_r = anchor_r - dr * (num_left - 1);
+  int word_start_c = anchor_c - dc * (num_left - 1);
+  int word_end_r = word_start_r + dr * (total - 1);
+  int word_end_c = word_start_c + dc * (total - 1);
+
+  int score = calculate_score(word_letters, word_start_r, word_start_c, vertical);
+
+  results.push_back(Move{Point{word_start_r, word_start_c},
+                         Point{word_end_r, word_end_c},
+                         std::move(letters_str), score});
+}
+
+void Board::extend_right(int r, int c, bool vertical,
+                         std::shared_ptr<State> state,
+                         const std::vector<Letter> &rack,
+                         std::vector<TileEntry> &left_part,
+                         std::vector<TileEntry> &right_part, int anchor_r,
+                         int anchor_c, std::vector<Move> &results) const {
+  if (!in_bounds(r, c))
+    return;
+
+  int dr = vertical ? 1 : 0;
+  int dc = vertical ? 0 : 1;
+  int next_r = r + dr, next_c = c + dc;
+  bool next_empty =
+      !in_bounds(next_r, next_c) || board[next_r][next_c] == Letter::BLANK;
+
+  if (board[r][c] != Letter::BLANK) {
+    // Existing tile – must consume it
+    Letter L = board[r][c];
+    right_part.push_back({L, false, false});
+
+    // Check word end BEFORE navigating
+    if (state->letters_that_make_a_word.count(letter_to_char(L)) > 0 &&
+        next_empty) {
+      record_move(left_part, right_part, anchor_r, anchor_c, vertical, results);
+    }
+
+    auto next_state = state->get_next_state(letter_to_key(L));
+    if (next_state) {
+      extend_right(next_r, next_c, vertical, next_state, rack, left_part,
+                   right_part, anchor_r, anchor_c, results);
+    }
+    right_part.pop_back();
+  } else {
+    // Empty square – try rack tiles
+    const auto &cc = get_cross_checks_for(r, c, vertical);
+    for (Letter rack_tile : unique_rack_tiles(rack)) {
+      for (auto [gaddag_L, is_blank] : candidates_for(rack_tile)) {
+        if (cc.count(gaddag_L) == 0)
+          continue;
+
+        right_part.push_back({gaddag_L, is_blank, true});
+
+        // Check word end BEFORE navigating
+        if (state->letters_that_make_a_word.count(letter_to_char(gaddag_L)) >
+                0 &&
+            next_empty) {
+          record_move(left_part, right_part, anchor_r, anchor_c, vertical,
+                      results);
+        }
+
+        auto next_state = state->get_next_state(letter_to_key(gaddag_L));
+        if (next_state) {
+          auto remaining = rack_minus(rack, rack_tile);
+          extend_right(next_r, next_c, vertical, next_state, remaining,
+                       left_part, right_part, anchor_r, anchor_c, results);
+        }
+
+        right_part.pop_back();
+      }
+    }
+  }
+}
+
+void Board::extend_left(int r, int c, bool vertical,
+                        std::shared_ptr<State> state,
+                        const std::vector<Letter> &rack, int limit,
+                        std::vector<TileEntry> &left_part, int anchor_r,
+                        int anchor_c, std::vector<Move> &results) const {
+  int dr = vertical ? 1 : 0;
+  int dc = vertical ? 0 : 1;
+
+  // Option A: stop here, cross delimiter, extend right
+  auto delim_state = state->get_next_state(DELIMITER);
+  if (delim_state) {
+    std::vector<TileEntry> right_part;
+    extend_right(anchor_r + dr, anchor_c + dc, vertical, delim_state, rack,
+                 left_part, right_part, anchor_r, anchor_c, results);
+  }
+
+  // Option B: extend one more step left (if limit allows and square is empty)
+  if (limit > 0 && in_bounds(r, c) && board[r][c] == Letter::BLANK) {
+    const auto &cc = get_cross_checks_for(r, c, vertical);
+    for (Letter rack_tile : unique_rack_tiles(rack)) {
+      for (auto [gaddag_L, is_blank] : candidates_for(rack_tile)) {
+        if (cc.count(gaddag_L) == 0)
+          continue;
+
+        auto next_state = state->get_next_state(letter_to_key(gaddag_L));
+        if (!next_state)
+          continue;
+
+        auto remaining = rack_minus(rack, rack_tile);
+        left_part.push_back({gaddag_L, is_blank, true});
+        extend_left(r - dr, c - dc, vertical, next_state, remaining, limit - 1,
+                    left_part, anchor_r, anchor_c, results);
+        left_part.pop_back();
+      }
+    }
+  }
+}
+
+void Board::generate_for_anchor(int r, int c, bool vertical,
+                                 const std::vector<Letter> &rack,
+                                 std::vector<Move> &results) const {
+  int dr = vertical ? 1 : 0;
+  int dc = vertical ? 0 : 1;
+  int back_r = r - dr;
+  int back_c = c - dc;
+
+  const auto &cc_anchor = get_cross_checks_for(r, c, vertical);
+
+  if (in_bounds(back_r, back_c) &&
+      board[back_r][back_c] != Letter::BLANK) {
+    // ── Case 1: existing tiles immediately behind the anchor ─────────────────
+    // The anchor gets a new tile from rack; then we consume existing tiles
+    // going left in GADDAG order; then cross delimiter; then extend right.
+    for (Letter rack_tile : unique_rack_tiles(rack)) {
+      for (auto [gaddag_L, is_blank] : candidates_for(rack_tile)) {
+        if (cc_anchor.count(gaddag_L) == 0)
+          continue;
+
+        auto state = dict_->root->get_next_state(letter_to_key(gaddag_L));
+        if (!state)
+          continue;
+
+        std::vector<TileEntry> left_part;
+        left_part.push_back({gaddag_L, is_blank, true}); // anchor tile (new)
+
+        int pos_r = back_r, pos_c = back_c;
+        bool ok = true;
+
+        while (in_bounds(pos_r, pos_c) &&
+               board[pos_r][pos_c] != Letter::BLANK) {
+          Letter tile = board[pos_r][pos_c];
+
+          // Check if this is the leftmost occupied tile (nothing further left).
+          // If it's in LTMAW, the word can end here (no right extension).
+          int further_r = pos_r - dr, further_c = pos_c - dc;
+          bool is_leftmost = !in_bounds(further_r, further_c) ||
+                             board[further_r][further_c] == Letter::BLANK;
+
+          if (is_leftmost &&
+              state->letters_that_make_a_word.count(letter_to_char(tile)) > 0) {
+            // Record a move that ends at this leftmost tile (no right part).
+            left_part.push_back({tile, false, false});
+            std::vector<TileEntry> empty_right;
+            record_move(left_part, empty_right, r, c, vertical, results);
+            left_part.pop_back();
+          }
+
+          // Navigate through this tile for potential right-extension paths.
+          state = state->get_next_state(letter_to_key(tile));
+          if (!state) {
+            ok = false;
+            break;
+          }
+          left_part.push_back({tile, false, false});
+          pos_r -= dr;
+          pos_c -= dc;
+        }
+
+        if (!ok)
+          continue; // navigation failed; no delimiter-crossing path possible
+
+        // All existing left tiles consumed with valid state – cross delimiter
+        // and extend right for words that have a suffix after the existing tiles.
+        auto delim_state = state->get_next_state(DELIMITER);
+        if (!delim_state)
+          continue;
+
+        auto remaining = rack_minus(rack, rack_tile);
+        std::vector<TileEntry> right_part;
+        extend_right(r + dr, c + dc, vertical, delim_state, remaining,
+                     left_part, right_part, r, c, results);
+      }
+    }
+  } else {
+    // ── Case 2: free left extension ──────────────────────────────────────────
+    // Compute how many empty squares exist to the left before hitting an anchor
+    // point or a non-empty square (this bounds how far left we can extend).
+    int left_limit = 0;
+    {
+      int pos_r = back_r, pos_c = back_c;
+      while (in_bounds(pos_r, pos_c) &&
+             board[pos_r][pos_c] == Letter::BLANK &&
+             anchor_points.count(Point{pos_r, pos_c}) == 0) {
+        left_limit++;
+        pos_r -= dr;
+        pos_c -= dc;
+      }
+    }
+
+    for (Letter rack_tile : unique_rack_tiles(rack)) {
+      for (auto [gaddag_L, is_blank] : candidates_for(rack_tile)) {
+        if (cc_anchor.count(gaddag_L) == 0)
+          continue;
+
+        auto state = dict_->root->get_next_state(letter_to_key(gaddag_L));
+        if (!state)
+          continue;
+
+        auto remaining = rack_minus(rack, rack_tile);
+        std::vector<TileEntry> left_part;
+        left_part.push_back({gaddag_L, is_blank, true}); // anchor tile (new)
+        extend_left(back_r, back_c, vertical, state, remaining, left_limit,
+                    left_part, r, c, results);
+      }
+    }
+  }
+}
+
+std::vector<Move>
+Board::get_all_valid_moves(const std::vector<Letter> &rack) const {
+  std::vector<Move> results;
+  for (const auto &anchor : anchor_points) {
+    generate_for_anchor(anchor.row, anchor.col, false, rack, results);
+    generate_for_anchor(anchor.row, anchor.col, true, rack, results);
+  }
+  return results;
+}
+
+} // namespace scrabble

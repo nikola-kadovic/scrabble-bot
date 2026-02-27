@@ -3,6 +3,7 @@ add_executable(scrabble_tests
     test_move.cpp
     test_gaddag.cpp
     test_board.cpp
+    test_move_gen.cpp
 )
 
 target_link_libraries(scrabble_tests PRIVATE scrabble_core Catch2::Catch2WithMain)

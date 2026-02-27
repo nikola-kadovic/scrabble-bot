@@ -91,15 +91,23 @@ TRIPLE_WORD = SquareType.TRIPLE_WORD
 DOUBLE_LETTER = SquareType.DOUBLE_LETTER
 TRIPLE_LETTER = SquareType.TRIPLE_LETTER
 
+# ── Point ─────────────────────────────────────────────────────────────────────
+
+class Point:
+    row: int
+    col: int
+    def __init__(self, row: int, col: int) -> None: ...
+    def __repr__(self) -> str: ...
+
 # ── Move ──────────────────────────────────────────────────────────────────────
 
 class Move:
-    starting_index: int
-    ending_index: int
-    letters: list[str]
+    start: Point   # (row, col) of word start
+    end: Point     # (row, col) of word end
+    letters: list[str]  # all letters of the word in order (lowercase = blank)
     score: int
     def __init__(
-        self, starting_index: int, ending_index: int, letters: list[str], score: int
+        self, start: Point, end: Point, letters: list[str], score: int
     ) -> None: ...
 
 # ── GADDAG ────────────────────────────────────────────────────────────────────
@@ -152,6 +160,7 @@ class Board:
         self, word: list[Letter], starting_point: tuple[int, int], vertical: bool
     ) -> int: ...
     def validate_board(self) -> list[str]: ...
+    def get_all_valid_moves(self, rack: list[Letter]) -> list[Move]: ...
     def __str__(self) -> str: ...
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

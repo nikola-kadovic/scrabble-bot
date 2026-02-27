@@ -3,9 +3,11 @@
 #include "gaddag.hpp"
 #include "letter.hpp"
 #include "move.hpp"
+#include "point.hpp"
 
 #include <array>
 #include <memory>
+#include <string>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -21,21 +23,6 @@ enum class SquareType : uint8_t {
   TRIPLE_WORD,
   DOUBLE_LETTER,
   TRIPLE_LETTER
-};
-
-struct Point {
-  int row;
-  int col;
-
-  bool operator==(const Point &o) const noexcept {
-    return row == o.row && col == o.col;
-  }
-};
-
-struct PointHash {
-  size_t operator()(const Point &p) const noexcept {
-    return static_cast<size_t>(p.row) * 31 + static_cast<size_t>(p.col);
-  }
 };
 
 using CrossChecks =
@@ -73,9 +60,32 @@ public:
   // An empty result means the board is fully valid.
   std::vector<std::string> validate_board() const;
 
+  // Returns all valid moves for the given rack as a list of Move objects.
+  std::vector<Move> get_all_valid_moves(const std::vector<Letter> &rack) const;
+
 private:
   std::shared_ptr<Gaddag> dict_;
   bool first_move_;
+
+  // Tile entry used during move generation
+  struct TileEntry {
+    Letter gaddag_letter; // A-Z (never BLANK; blanks store their display letter)
+    bool is_blank;        // true = was played as a blank tile (scores 0)
+    bool is_new;          // true = placed from rack; false = existing board tile
+
+    Letter score_letter() const {
+      return is_blank ? Letter::BLANK : gaddag_letter;
+    }
+
+    std::string letters_str() const {
+      if (is_blank) {
+        char c = letter_to_char(gaddag_letter);
+        return std::string(1,
+                           static_cast<char>(std::tolower(static_cast<unsigned char>(c))));
+      }
+      return letter_to_key(gaddag_letter);
+    }
+  };
 
   void build_square_types();
 
@@ -97,6 +107,37 @@ private:
 
   // Returns true if `word` exists in the dictionary via GADDAG traversal.
   bool is_word_valid(const std::vector<Letter> &word) const;
+
+  // ── Move generation helpers ──────────────────────────────────────────────
+
+  // Returns the cross-check set for position (r,c) given move direction.
+  // Horizontal moves check vertical_cross_checks; vertical check horizontal.
+  const std::unordered_set<Letter> &get_cross_checks_for(int r, int c,
+                                                         bool vertical) const;
+
+  // Record a completed move into results.
+  void record_move(const std::vector<TileEntry> &left_part,
+                   const std::vector<TileEntry> &right_part, int anchor_r,
+                   int anchor_c, bool vertical,
+                   std::vector<Move> &results) const;
+
+  // Extend the word to the right from position (r,c).
+  void extend_right(int r, int c, bool vertical, std::shared_ptr<State> state,
+                    const std::vector<Letter> &rack,
+                    std::vector<TileEntry> &left_part,
+                    std::vector<TileEntry> &right_part, int anchor_r,
+                    int anchor_c, std::vector<Move> &results) const;
+
+  // Extend the word to the left from position (r,c).
+  void extend_left(int r, int c, bool vertical, std::shared_ptr<State> state,
+                   const std::vector<Letter> &rack, int limit,
+                   std::vector<TileEntry> &left_part, int anchor_r,
+                   int anchor_c, std::vector<Move> &results) const;
+
+  // Generate all valid moves for a single anchor point.
+  void generate_for_anchor(int r, int c, bool vertical,
+                            const std::vector<Letter> &rack,
+                            std::vector<Move> &results) const;
 };
 
 } // namespace scrabble
