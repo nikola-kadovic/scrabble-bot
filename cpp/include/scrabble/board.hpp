@@ -9,7 +9,6 @@
 #include <memory>
 #include <string>
 #include <unordered_set>
-#include <utility>
 #include <vector>
 
 namespace scrabble {
@@ -42,11 +41,13 @@ public:
 
   explicit Board(std::shared_ptr<Gaddag> dictionary);
 
-  // Place a word (list of Letters) starting at (row,col), horizontal or
-  // vertical. Throws std::invalid_argument on invalid placement.
-  // Returns the points earned from placing the word.
-  int place_word(const std::vector<Letter> &word,
-                 std::pair<int, int> starting_point, bool vertical);
+  // Place a word (list of Letters). Direction inferred: start.row == end.row →
+  // horizontal; start.col == end.col → vertical. Throws std::invalid_argument
+  // on invalid placement. Returns the points earned from placing the word.
+  int place_word(const std::vector<Letter> &word, Point start, Point end);
+
+  // Convenience: apply a pre-built Move directly.
+  int place_word(const Move &move);
 
   // Compute the score for placing word at (row, col), horizontal or vertical,
   // without modifying the board. Assumes the placement is valid.

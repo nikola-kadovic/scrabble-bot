@@ -143,7 +143,7 @@ class TestHorizontalCrossChecks:
     def test_cross_check_example_1(self):
         g = make_gaddag("ACT", "ACTS", "TA")
         b = Board(g)
-        b.place_word([Letter.A, Letter.C, Letter.T], (7, 7), True)
+        b.place_word([Letter.A, Letter.C, Letter.T], (7, 7), (9, 7))
 
         hcc = b._horizontal_cross_checks
         assert len(hcc[7][6]) == 1
@@ -164,7 +164,7 @@ class TestHorizontalCrossChecks:
         g = make_gaddag("PA", "ABLE", "PAYABLE", "PARABLE")
         b = Board(g)
 
-        b.place_word([Letter.P, Letter.A], (7, 5), False)
+        b.place_word([Letter.P, Letter.A], (7, 5), (7, 6))
 
         vcc = b._vertical_cross_checks
         hcc = b._horizontal_cross_checks
@@ -179,7 +179,7 @@ class TestHorizontalCrossChecks:
         assert len(hcc[7][4]) == 0
         assert len(hcc[7][7]) == 0
 
-        b.place_word([Letter.A, Letter.B, Letter.L, Letter.E], (7, 8), False)
+        b.place_word([Letter.A, Letter.B, Letter.L, Letter.E], (7, 8), (7, 11))
 
         vcc = b._vertical_cross_checks
         hcc = b._horizontal_cross_checks
@@ -196,7 +196,7 @@ class TestAnchorPoints:
     def test_anchor_points_after_horizontal_word(self):
         g = make_gaddag("ACT")
         b = Board(g)
-        b.place_word([Letter.A, Letter.C, Letter.T], (7, 7), False)
+        b.place_word([Letter.A, Letter.C, Letter.T], (7, 7), (7, 9))
 
         anchors = b._anchor_points
         assert len(anchors) == 8
@@ -207,7 +207,7 @@ class TestAnchorPoints:
     def test_anchor_points_after_vertical_word(self):
         g = make_gaddag("ACT")
         b = Board(g)
-        b.place_word([Letter.A, Letter.C, Letter.T], (7, 7), True)
+        b.place_word([Letter.A, Letter.C, Letter.T], (7, 7), (9, 7))
 
         anchors = b._anchor_points
         assert len(anchors) == 8
@@ -218,8 +218,8 @@ class TestAnchorPoints:
     def test_anchor_points_after_multiple_words(self):
         g = make_gaddag("ACT", "CAT")
         b = Board(g)
-        b.place_word([Letter.A, Letter.C, Letter.T], (7, 7), True)
-        b.place_word([Letter.C, Letter.A, Letter.T], (8, 7), False)
+        b.place_word([Letter.A, Letter.C, Letter.T], (7, 7), (9, 7))
+        b.place_word([Letter.C, Letter.A, Letter.T], (8, 7), (8, 9))
 
         anchors = b._anchor_points
         assert len(anchors) == 10
@@ -248,19 +248,19 @@ class TestValidateBoard:
     def test_valid_word_is_valid(self):
         g = make_gaddag("CAT")
         b = Board(g)
-        b.place_word([Letter.C, Letter.A, Letter.T], (7, 7), False)
+        b.place_word([Letter.C, Letter.A, Letter.T], (7, 7), (7, 9))
         assert b.validate_board() == []
 
     def test_invalid_word_is_invalid(self):
         g = make_gaddag("CAT")
         b = Board(g)
-        b.place_word([Letter.H, Letter.A, Letter.T], (7, 7), False)
+        b.place_word([Letter.H, Letter.A, Letter.T], (7, 7), (7, 9))
         assert b.validate_board() == ["HAT"]
 
     def test_valid_vertical_word_is_valid(self):
         g = make_gaddag("CAT")
         b = Board(g)
-        b.place_word([Letter.C, Letter.A, Letter.T], (7, 7), True)
+        b.place_word([Letter.C, Letter.A, Letter.T], (7, 7), (9, 7))
         assert b.validate_board() == []
 
     def test_valid_crossing_words(self):
@@ -268,8 +268,8 @@ class TestValidateBoard:
         # ACT vertical:   A@(5,9) C@(6,9) T@(7,9) -- T shared
         g = make_gaddag("CAT", "ACT")
         b = Board(g)
-        b.place_word([Letter.C, Letter.A, Letter.T], (7, 7), False)
-        b.place_word([Letter.A, Letter.C, Letter.T], (5, 9), True)
+        b.place_word([Letter.C, Letter.A, Letter.T], (7, 7), (7, 9))
+        b.place_word([Letter.A, Letter.C, Letter.T], (5, 9), (7, 9))
         assert b.validate_board() == []
 
     def test_returns_list(self):

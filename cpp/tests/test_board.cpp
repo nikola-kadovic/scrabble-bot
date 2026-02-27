@@ -67,7 +67,7 @@ TEST_CASE("Board anchor points seeded with center on init", "[board]") {
 TEST_CASE("Board anchor points after horizontal word", "[board]") {
     auto g = make_gaddag({"ACT"});
     Board b(g);
-    b.place_word({Letter::A, Letter::C, Letter::T}, {7, 7}, false);
+    b.place_word({Letter::A, Letter::C, Letter::T}, Point{7, 7}, Point{7, 9});
 
     CHECK(b.anchor_points.size() == 8);
 
@@ -82,7 +82,7 @@ TEST_CASE("Board anchor points after horizontal word", "[board]") {
 TEST_CASE("Board anchor points after vertical word", "[board]") {
     auto g = make_gaddag({"ACT"});
     Board b(g);
-    b.place_word({Letter::A, Letter::C, Letter::T}, {7, 7}, true);
+    b.place_word({Letter::A, Letter::C, Letter::T}, Point{7, 7}, Point{9, 7});
 
     CHECK(b.anchor_points.size() == 8);
 
@@ -97,8 +97,8 @@ TEST_CASE("Board anchor points after vertical word", "[board]") {
 TEST_CASE("Board anchor points after multiple words", "[board]") {
     auto g = make_gaddag({"ACT","CAT"});
     Board b(g);
-    b.place_word({Letter::A, Letter::C, Letter::T}, {7, 7}, true);
-    b.place_word({Letter::C, Letter::A, Letter::T}, {8, 7}, false);
+    b.place_word({Letter::A, Letter::C, Letter::T}, Point{7, 7}, Point{9, 7});
+    b.place_word({Letter::C, Letter::A, Letter::T}, Point{8, 7}, Point{8, 9});
 
     CHECK(b.anchor_points.size() == 10);
 }
@@ -106,7 +106,7 @@ TEST_CASE("Board anchor points after multiple words", "[board]") {
 TEST_CASE("Board horizontal cross check: ACT vertical, T+A pair", "[board]") {
     auto g = make_gaddag({"ACT","ACTS","TA"});
     Board b(g);
-    b.place_word({Letter::A, Letter::C, Letter::T}, {7, 7}, true);
+    b.place_word({Letter::A, Letter::C, Letter::T}, Point{7, 7}, Point{9, 7});
 
     // Square to the left of 'A' (row 7, col 6) should allow only T
     const auto& cc_76 = b.horizontal_cross_checks[7][6];
@@ -132,7 +132,7 @@ TEST_CASE("Board horizontal cross check: PAYABLE example", "[board]") {
     Board b(g);
 
     // Place "PA" horizontally at (7,5)
-    b.place_word({Letter::P, Letter::A}, {7, 5}, false);
+    b.place_word({Letter::P, Letter::A}, Point{7, 5}, Point{7, 6});
 
     // Below P at (8,5): only A (from PA)
     CHECK(b.vertical_cross_checks[8][5].size() == 1);
@@ -152,7 +152,7 @@ TEST_CASE("Board horizontal cross check: PAYABLE example", "[board]") {
     CHECK(b.horizontal_cross_checks[7][7].empty());
 
     // Place "ABLE" horizontally at (7,8)
-    b.place_word({Letter::A, Letter::B, Letter::L, Letter::E}, {7, 8}, false);
+    b.place_word({Letter::A, Letter::B, Letter::L, Letter::E}, Point{7, 8}, Point{7, 11});
 
     // Gap at (7,7) should allow R and Y (for PARABLE / PAYABLE)
     const auto& gap = b.horizontal_cross_checks[7][7];
@@ -165,10 +165,10 @@ TEST_CASE("Board place_word throws on out of bounds", "[board]") {
     auto g = make_gaddag({});
     Board b(g);
     // Force first_move_ off by placing a valid word first
-    b.place_word({Letter::A, Letter::B}, {7, 7}, false);
+    b.place_word({Letter::A, Letter::B}, Point{7, 7}, Point{7, 8});
     // Now try to overflow
     CHECK_THROWS_AS(
-        b.place_word({Letter::A, Letter::B, Letter::C}, {7, 14}, false),
+        b.place_word({Letter::A, Letter::B, Letter::C}, Point{7, 14}, Point{7, 16}),
         std::invalid_argument);
 }
 
@@ -181,7 +181,7 @@ TEST_CASE("Scoring: RATE horizontal, DWS at center", "[scoring]") {
     auto g = make_gaddag({});
     Board b(g);
     int score = b.place_word(
-        {Letter::R, Letter::A, Letter::T, Letter::E}, {7, 5}, false);
+        {Letter::R, Letter::A, Letter::T, Letter::E}, Point{7, 5}, Point{7, 8});
     CHECK(score == 8);
 }
 
@@ -192,7 +192,7 @@ TEST_CASE("Scoring: TRACE horizontal, DLS + DWS at center", "[scoring]") {
     auto g = make_gaddag({});
     Board b(g);
     int score = b.place_word(
-        {Letter::T, Letter::R, Letter::A, Letter::C, Letter::E}, {7, 3}, false);
+        {Letter::T, Letter::R, Letter::A, Letter::C, Letter::E}, Point{7, 3}, Point{7, 7});
     CHECK(score == 16);
 }
 
@@ -203,9 +203,9 @@ TEST_CASE("Scoring: TRACE horizontal, DLS + DWS at center", "[scoring]") {
 TEST_CASE("Scoring: MIA vertical, TLS + pre-placed tile skip", "[scoring]") {
     auto g = make_gaddag({});
     Board b(g);
-    b.place_word({Letter::A, Letter::C, Letter::T}, {7, 5}, false); // setup
+    b.place_word({Letter::A, Letter::C, Letter::T}, Point{7, 5}, Point{7, 7}); // setup
     int score = b.place_word(
-        {Letter::M, Letter::I, Letter::A}, {5, 5}, true);
+        {Letter::M, Letter::I, Letter::A}, Point{5, 5}, Point{7, 5});
     CHECK(score == 10);
 }
 
@@ -216,9 +216,9 @@ TEST_CASE("Scoring: MIA vertical, TLS + pre-placed tile skip", "[scoring]") {
 TEST_CASE("Scoring: YOGA vertical, DWS + pre-placed tile skip", "[scoring]") {
     auto g = make_gaddag({});
     Board b(g);
-    b.place_word({Letter::A, Letter::C, Letter::E}, {7, 4}, false); // setup
+    b.place_word({Letter::A, Letter::C, Letter::E}, Point{7, 4}, Point{7, 6}); // setup
     int score = b.place_word(
-        {Letter::Y, Letter::O, Letter::G, Letter::A}, {4, 4}, true);
+        {Letter::Y, Letter::O, Letter::G, Letter::A}, Point{4, 4}, Point{7, 4});
     CHECK(score == 14);
 }
 
@@ -230,7 +230,7 @@ TEST_CASE("Scoring: MIGRANT horizontal, TWS + DLS + bingo", "[scoring]") {
     Board b(g);
     int score = b.place_word(
         {Letter::M, Letter::I, Letter::G, Letter::R, Letter::A, Letter::N, Letter::T},
-        {7, 0}, false);
+        Point{7, 0}, Point{7, 6});
     CHECK(score == 83);
 }
 
@@ -241,10 +241,10 @@ TEST_CASE("Scoring: MIGRANT horizontal, TWS + DLS + bingo", "[scoring]") {
 TEST_CASE("Scoring: DOUBLES horizontal, two DWS stack to x4 + bingo", "[scoring]") {
     auto g = make_gaddag({});
     Board b(g);
-    b.place_word({Letter::A}, {7, 7}, true); // setup: A at center (DWS)
+    b.place_word({Letter::A}, Point{7, 7}, Point{7, 7}); // setup: A at center (DWS)
     int score = b.place_word(
         {Letter::D, Letter::O, Letter::U, Letter::B, Letter::L, Letter::E, Letter::S},
-        {4, 4}, false);
+        Point{4, 4}, Point{4, 10});
     CHECK(score == 90);
 }
 
@@ -255,10 +255,10 @@ TEST_CASE("Scoring: DOUBLES horizontal, two DWS stack to x4 + bingo", "[scoring]
 TEST_CASE("Scoring: STOPPED vertical, TWS + DLS + bingo", "[scoring]") {
     auto g = make_gaddag({});
     Board b(g);
-    b.place_word({Letter::A}, {7, 7}, true); // setup: A at center (DWS)
+    b.place_word({Letter::A}, Point{7, 7}, Point{7, 7}); // setup: A at center (DWS)
     int score = b.place_word(
         {Letter::S, Letter::T, Letter::O, Letter::P, Letter::P, Letter::E, Letter::D},
-        {0, 7}, true);
+        Point{0, 7}, Point{6, 7});
     CHECK(score == 95);
 }
 
@@ -270,7 +270,7 @@ TEST_CASE("Scoring: MIGRATE horizontal, DWS bingo", "[scoring]") {
     Board b(g);
     int score = b.place_word(
         {Letter::M, Letter::I, Letter::G, Letter::R, Letter::A, Letter::T, Letter::E},
-        {7, 4}, false);
+        Point{7, 4}, Point{7, 10});
     CHECK(score == 70);
 }
 
@@ -281,9 +281,9 @@ TEST_CASE("Scoring: MIGRATE horizontal, DWS bingo", "[scoring]") {
 TEST_CASE("Scoring: ACES horizontal, overlap scores only new tile", "[scoring]") {
     auto g = make_gaddag({});
     Board b(g);
-    b.place_word({Letter::A, Letter::C, Letter::E}, {7, 5}, false); // setup
+    b.place_word({Letter::A, Letter::C, Letter::E}, Point{7, 5}, Point{7, 7}); // setup
     int score = b.place_word(
-        {Letter::A, Letter::C, Letter::E, Letter::S}, {7, 5}, false);
+        {Letter::A, Letter::C, Letter::E, Letter::S}, Point{7, 5}, Point{7, 8});
     CHECK(score == 1);
 }
 
@@ -295,9 +295,9 @@ TEST_CASE("Scoring: ACES horizontal, overlap scores only new tile", "[scoring]")
 TEST_CASE("Scoring: SO horizontal, cross-word below from vertical tiles", "[scoring]") {
     auto g = make_gaddag({});
     Board b(g);
-    b.place_word({Letter::A, Letter::T}, {6, 7}, true); // setup: AT vertical
+    b.place_word({Letter::A, Letter::T}, Point{6, 7}, Point{7, 7}); // setup: AT vertical
     int score = b.place_word(
-        {Letter::S, Letter::O}, {5, 6}, false);
+        {Letter::S, Letter::O}, Point{5, 6}, Point{5, 7});
     CHECK(score == 5);
 }
 
@@ -310,10 +310,10 @@ TEST_CASE("Scoring: SO horizontal, cross-word below from vertical tiles", "[scor
 TEST_CASE("Scoring: BA vertical, cross-word on right side", "[scoring]") {
     auto g = make_gaddag({});
     Board b(g);
-    b.place_word({Letter::X}, {7, 7}, true);                            // X at center
-    b.place_word({Letter::A, Letter::C, Letter::E}, {6, 8}, false);     // ACE horizontal
+    b.place_word({Letter::X}, Point{7, 7}, Point{7, 7});                            // X at center
+    b.place_word({Letter::A, Letter::C, Letter::E}, Point{6, 8}, Point{6, 10});     // ACE horizontal
     int score = b.place_word(
-        {Letter::B, Letter::A}, {5, 7}, true);
+        {Letter::B, Letter::A}, Point{5, 7}, Point{6, 7});
     CHECK(score == 10);
 }
 
@@ -325,9 +325,9 @@ TEST_CASE("Scoring: BA vertical, cross-word on right side", "[scoring]") {
 TEST_CASE("Scoring: BA vertical, cross-word on left side", "[scoring]") {
     auto g = make_gaddag({});
     Board b(g);
-    b.place_word({Letter::A, Letter::C, Letter::E}, {7, 4}, false); // ACE horizontal
+    b.place_word({Letter::A, Letter::C, Letter::E}, Point{7, 4}, Point{7, 6}); // ACE horizontal
     int score = b.place_word(
-        {Letter::B, Letter::A}, {6, 7}, true);
+        {Letter::B, Letter::A}, Point{6, 7}, Point{7, 7});
     CHECK(score == 10);
 }
 
@@ -342,14 +342,14 @@ TEST_CASE("validate_board: empty board returns no invalid words", "[validate_boa
 TEST_CASE("validate_board: valid horizontal word", "[validate_board]") {
     auto g = make_gaddag({"CAT"});
     Board b(g);
-    b.place_word({Letter::C, Letter::A, Letter::T}, {7, 7}, false);
+    b.place_word({Letter::C, Letter::A, Letter::T}, Point{7, 7}, Point{7, 9});
     CHECK(b.validate_board().empty());
 }
 
 TEST_CASE("validate_board: valid vertical word", "[validate_board]") {
     auto g = make_gaddag({"CAT"});
     Board b(g);
-    b.place_word({Letter::C, Letter::A, Letter::T}, {7, 7}, true);
+    b.place_word({Letter::C, Letter::A, Letter::T}, Point{7, 7}, Point{9, 7});
     CHECK(b.validate_board().empty());
 }
 
@@ -358,8 +358,8 @@ TEST_CASE("validate_board: valid crossing words", "[validate_board]") {
     // ACT vertical:   A@(5,9) C@(6,9) T@(7,9)  -- T is shared
     auto g = make_gaddag({"CAT", "ACT"});
     Board b(g);
-    b.place_word({Letter::C, Letter::A, Letter::T}, {7, 7}, false);
-    b.place_word({Letter::A, Letter::C, Letter::T}, {5, 9}, true);
+    b.place_word({Letter::C, Letter::A, Letter::T}, Point{7, 7}, Point{7, 9});
+    b.place_word({Letter::A, Letter::C, Letter::T}, Point{5, 9}, Point{7, 9});
     CHECK(b.validate_board().empty());
 }
 
@@ -389,7 +389,7 @@ TEST_CASE("validate_board: mix of valid and invalid words", "[validate_board]") 
     // CAT (valid) via place_word + XQ (invalid) injected directly
     auto g = make_gaddag({"CAT"});
     Board b(g);
-    b.place_word({Letter::C, Letter::A, Letter::T}, {7, 7}, false);
+    b.place_word({Letter::C, Letter::A, Letter::T}, Point{7, 7}, Point{7, 9});
     b.board[0][0] = Letter::X;
     b.board[0][1] = Letter::Q;
     auto invalid = b.validate_board();

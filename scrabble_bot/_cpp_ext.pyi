@@ -4,7 +4,7 @@ Provides type information for Pyright in basic mode.
 """
 
 from __future__ import annotations
-from typing import Optional
+from typing import Optional, overload
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -153,9 +153,10 @@ class Board:
     @property
     def _vertical_cross_checks(self) -> list[list[set[Letter]]]: ...
     def __init__(self, dictionary: Gaddag) -> None: ...
-    def place_word(
-        self, word: list[Letter], starting_point: tuple[int, int], vertical: bool
-    ) -> int: ...
+    @overload
+    def place_word(self, word: list[Letter], start: tuple[int, int], end: tuple[int, int]) -> int: ...
+    @overload
+    def place_word(self, move: Move) -> int: ...
     def calculate_score(
         self, word: list[Letter], starting_point: tuple[int, int], vertical: bool
     ) -> int: ...

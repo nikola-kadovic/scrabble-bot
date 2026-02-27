@@ -263,13 +263,16 @@ PYBIND11_MODULE(_cpp_ext, m) {
       .def(
           "place_word",
           [](Board &b, const std::vector<Letter> &word,
-             py::tuple starting_point, bool vertical) {
-            int row = starting_point[0].cast<int>();
-            int col = starting_point[1].cast<int>();
-            int score = b.place_word(word, {row, col}, vertical);
-            return score;
+             py::tuple start, py::tuple end) {
+            return b.place_word(word,
+              Point{start[0].cast<int>(), start[1].cast<int>()},
+              Point{end[0].cast<int>(),   end[1].cast<int>()});
           },
-          py::arg("word"), py::arg("starting_point"), py::arg("vertical"))
+          py::arg("word"), py::arg("start"), py::arg("end"))
+      .def(
+          "place_word",
+          [](Board &b, const Move &move) { return b.place_word(move); },
+          py::arg("move"))
       .def(
           "calculate_score",
           [](const Board &b, const std::vector<Letter> &word,

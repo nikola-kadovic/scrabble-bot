@@ -45,7 +45,7 @@ void verify_all_moves(const Board& original, const std::vector<Move>& moves) {
     for (const auto& m : moves) {
         bool vert = (m.start.col == m.end.col);
         Board copy = original;
-        copy.place_word(m.letters, {m.start.row, m.start.col}, vert);
+        copy.place_word(m);
         auto invalid = copy.validate_board();
         CHECK(invalid.empty());
         int expected_score =
@@ -92,7 +92,7 @@ TEST_CASE("first move: generated moves are all valid", "[move_gen]") {
 TEST_CASE("extending existing word generates correct moves", "[move_gen]") {
     auto g = make_gaddag({"CAT", "CATS", "SCAT", "TA", "AT", "AS"});
     Board board(g);
-    board.place_word({Letter::C, Letter::A, Letter::T}, {7, 7}, false);
+    board.place_word({Letter::C, Letter::A, Letter::T}, Point{7, 7}, Point{7, 9});
 
     std::vector<Letter> rack = {Letter::S};
     auto moves = board.get_all_valid_moves(rack);
@@ -114,7 +114,7 @@ TEST_CASE("cross-word constraint filters invalid placements", "[move_gen]") {
     // Placing X or Q at (7,6) would form "XA" or "QA" → not in dict → filtered.
     auto g = make_gaddag({"ACT", "TA", "AX", "AT"});
     Board board(g);
-    board.place_word({Letter::A, Letter::C, Letter::T}, {7, 7}, true);
+    board.place_word({Letter::A, Letter::C, Letter::T}, Point{7, 7}, Point{9, 7});
 
     std::vector<Letter> rack = {Letter::T, Letter::X, Letter::Q};
     auto moves = board.get_all_valid_moves(rack);
@@ -131,7 +131,7 @@ TEST_CASE("cross-word constraint filters invalid placements", "[move_gen]") {
 TEST_CASE("generated move scores match calculate_score", "[move_gen]") {
     auto g = make_gaddag({"CAT", "CATS"});
     Board board(g);
-    board.place_word({Letter::C, Letter::A, Letter::T}, {7, 7}, false);
+    board.place_word({Letter::C, Letter::A, Letter::T}, Point{7, 7}, Point{7, 9});
 
     std::vector<Letter> rack = {Letter::S};
     auto moves = board.get_all_valid_moves(rack);

@@ -107,29 +107,22 @@ void Board::build_square_types() {
 // ─── place_word (public)
 // ───────────────────────────────────────────────────────
 
-int Board::place_word(const std::vector<Letter> &word,
-                      std::pair<int, int> starting_point, bool vertical) {
-  int row = starting_point.first;
-  int col = starting_point.second;
-
-  if (!in_bounds(row, col)) {
+int Board::place_word(const std::vector<Letter> &word, Point start, Point end) {
+  if (!in_bounds(start.row, start.col))
     throw std::invalid_argument("Starting point is out of bounds");
-  }
 
-  int score;
+  bool vertical = (start.col == end.col);
+  int score = vertical
+    ? place_word_vertically(word, start.row, start.col)
+    : place_word_horizontally(word, start.row, start.col);
 
-  if (vertical) {
-    score = place_word_vertically(word, row, col);
-  } else {
-    score = place_word_horizontally(word, row, col);
-  }
-
-  if (first_move_) {
-    first_move_ = false;
-    square_types[7][7] = SquareType::DEFAULT;
-  }
+  if (first_move_) { first_move_ = false; square_types[7][7] = SquareType::DEFAULT; }
 
   return score;
+}
+
+int Board::place_word(const Move &move) {
+  return place_word(move.letters, move.start, move.end);
 }
 
 // ─── calculate_score
