@@ -72,12 +72,12 @@ class TestSquareType:
 class TestMove:
     def test_move_initialization(self):
         from scrabble_bot._cpp_ext import Point
-        m = Move(Point(0, 0), Point(0, 5), ["A", "B", "C"], 10)
+        m = Move(Point(0, 0), Point(0, 5), [Letter.A, Letter.B, Letter.C], 10)
         assert m.start.row == 0
         assert m.start.col == 0
         assert m.end.row == 0
         assert m.end.col == 5
-        assert m.letters == ["A", "B", "C"]
+        assert m.letters == [Letter.A, Letter.B, Letter.C]
         assert m.score == 10
 
 

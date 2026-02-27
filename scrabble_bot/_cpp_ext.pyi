@@ -104,10 +104,10 @@ class Point:
 class Move:
     start: Point   # (row, col) of word start
     end: Point     # (row, col) of word end
-    letters: list[str]  # all letters of the word in order (lowercase = blank)
+    letters: list[Letter]  # all letters of the word in order
     score: int
     def __init__(
-        self, start: Point, end: Point, letters: list[str], score: int
+        self, start: Point, end: Point, letters: list[Letter], score: int
     ) -> None: ...
 
 # ── GADDAG ────────────────────────────────────────────────────────────────────

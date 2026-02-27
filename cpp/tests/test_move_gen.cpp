@@ -32,25 +32,10 @@ bool move_exists(const std::vector<Move>& moves, const std::string& word,
         if (m_vert != vert) continue;
         if (m.start.row != sr || m.start.col != sc) continue;
         std::string w;
-        for (const auto& s : m.letters) w += s;
+        for (Letter l : m.letters) w += letter_to_char(l);
         if (w == word) return true;
     }
     return false;
-}
-
-// Convert a Move's letters (vector<string>) to a vector<Letter>.
-// Lowercase letters represent blank tiles (converted to Letter::BLANK).
-std::vector<Letter> move_to_letters(const Move& m) {
-    std::vector<Letter> word;
-    for (const auto& s : m.letters) {
-        char c = s[0];
-        if (std::islower(static_cast<unsigned char>(c))) {
-            word.push_back(Letter::BLANK);
-        } else {
-            word.push_back(char_to_letter(c));
-        }
-    }
-    return word;
 }
 
 // Core validation: for every move, place it on a copy of the board and assert
@@ -60,12 +45,11 @@ void verify_all_moves(const Board& original, const std::vector<Move>& moves) {
     for (const auto& m : moves) {
         bool vert = (m.start.col == m.end.col);
         Board copy = original;
-        std::vector<Letter> word = move_to_letters(m);
-        copy.place_word(word, {m.start.row, m.start.col}, vert);
+        copy.place_word(m.letters, {m.start.row, m.start.col}, vert);
         auto invalid = copy.validate_board();
         CHECK(invalid.empty());
         int expected_score =
-            original.calculate_score(word, m.start.row, m.start.col, vert);
+            original.calculate_score(m.letters, m.start.row, m.start.col, vert);
         CHECK(m.score == expected_score);
     }
 }
@@ -154,7 +138,7 @@ TEST_CASE("generated move scores match calculate_score", "[move_gen]") {
 
     auto it = std::find_if(moves.begin(), moves.end(), [](const Move& m) {
         std::string w;
-        for (const auto& s : m.letters) w += s;
+        for (Letter l : m.letters) w += letter_to_char(l);
         return w == "CATS" && m.start.row == 7 && m.start.col == 7;
     });
     REQUIRE(it != moves.end());

@@ -78,16 +78,12 @@ void Board::record_move(const std::vector<TileEntry> &left_part,
   // Full word in order = reverse(left_part) + right_part
   std::vector<Letter> word_letters;
   word_letters.reserve(total);
-  std::vector<std::string> letters_str;
-  letters_str.reserve(total);
 
   for (int i = num_left - 1; i >= 0; i--) {
     word_letters.push_back(left_part[i].score_letter());
-    letters_str.push_back(left_part[i].letters_str());
   }
   for (const auto &t : right_part) {
     word_letters.push_back(t.score_letter());
-    letters_str.push_back(t.letters_str());
   }
 
   int word_start_r = anchor_r - dr * (num_left - 1);
@@ -99,7 +95,7 @@ void Board::record_move(const std::vector<TileEntry> &left_part,
 
   results.push_back(Move{Point{word_start_r, word_start_c},
                          Point{word_end_r, word_end_c},
-                         std::move(letters_str), score});
+                         std::move(word_letters), score});
 }
 
 void Board::extend_right(int r, int c, bool vertical,

@@ -104,7 +104,7 @@ PYBIND11_MODULE(_cpp_ext, m) {
       });
 
   py::class_<Move>(m, "Move")
-      .def(py::init<Point, Point, std::vector<std::string>, int>(),
+      .def(py::init<Point, Point, std::vector<Letter>, int>(),
            py::arg("start"), py::arg("end"), py::arg("letters"),
            py::arg("score"))
       .def_readwrite("start", &Move::start)
