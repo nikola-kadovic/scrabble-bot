@@ -76,14 +76,24 @@ void Board::record_move(const std::vector<TileEntry> &left_part,
   int total = num_left + static_cast<int>(right_part.size());
 
   // Full word in order = reverse(left_part) + right_part
-  std::vector<Letter> word_letters;
+  // word_letters: actual played letters (A-Z, never BLANK) stored in Move
+  // score_letters: uses BLANK for blank tiles so scoring gives 0 for blanks
+  std::vector<Letter> word_letters, score_letters;
+  std::vector<bool>   is_blank_vec;
   word_letters.reserve(total);
+  score_letters.reserve(total);
+  is_blank_vec.reserve(total);
 
   for (int i = num_left - 1; i >= 0; i--) {
-    word_letters.push_back(left_part[i].score_letter());
+    const auto &t = left_part[i];
+    word_letters.push_back(t.gaddag_letter);
+    score_letters.push_back(t.score_letter());
+    is_blank_vec.push_back(t.is_blank);
   }
   for (const auto &t : right_part) {
-    word_letters.push_back(t.score_letter());
+    word_letters.push_back(t.gaddag_letter);
+    score_letters.push_back(t.score_letter());
+    is_blank_vec.push_back(t.is_blank);
   }
 
   int word_start_r = anchor_r - dr * (num_left - 1);
@@ -91,11 +101,11 @@ void Board::record_move(const std::vector<TileEntry> &left_part,
   int word_end_r = word_start_r + dr * (total - 1);
   int word_end_c = word_start_c + dc * (total - 1);
 
-  int score = calculate_score(word_letters, word_start_r, word_start_c, vertical);
+  int score = calculate_score(score_letters, word_start_r, word_start_c, vertical);
 
   results.push_back(Move{Point{word_start_r, word_start_c},
                          Point{word_end_r, word_end_c},
-                         std::move(word_letters), score});
+                         std::move(word_letters), std::move(is_blank_vec), score});
 }
 
 void Board::extend_right(int r, int c, bool vertical,

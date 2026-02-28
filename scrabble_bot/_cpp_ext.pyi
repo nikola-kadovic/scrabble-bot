@@ -102,12 +102,18 @@ class Point:
 # ── Move ──────────────────────────────────────────────────────────────────────
 
 class Move:
-    start: Point   # (row, col) of word start
-    end: Point     # (row, col) of word end
-    letters: list[Letter]  # all letters of the word in order
+    start: Point  # (row, col) of word start
+    end: Point  # (row, col) of word end
+    letters: list[Letter]  # actual letter at each position (A-Z, never BLANK)
+    is_blank: list[bool]  # true if that position was played from a blank tile
     score: int
     def __init__(
-        self, start: Point, end: Point, letters: list[Letter], score: int
+        self,
+        start: Point,
+        end: Point,
+        letters: list[Letter],
+        is_blank: list[bool],
+        score: int,
     ) -> None: ...
 
 # ── GADDAG ────────────────────────────────────────────────────────────────────
@@ -154,7 +160,9 @@ class Board:
     def _vertical_cross_checks(self) -> list[list[set[Letter]]]: ...
     def __init__(self, dictionary: Gaddag) -> None: ...
     @overload
-    def place_word(self, word: list[Letter], start: tuple[int, int], end: tuple[int, int]) -> int: ...
+    def place_word(
+        self, word: list[Letter], start: tuple[int, int], end: tuple[int, int]
+    ) -> int: ...
     @overload
     def place_word(self, move: Move) -> int: ...
     def calculate_score(

@@ -21,7 +21,6 @@ def main():
 
     print(f"score 1: {score1}")
 
-
     # Second move: BE vertically, crossing the E in HELLO
     score2 = board.place_word(
         [Letter.B, Letter.E],
@@ -43,13 +42,54 @@ def main():
     print(board)
     print("Done.")
 
+    actions = board.get_all_valid_moves(
+        [Letter.A, Letter.B, Letter.C, Letter.D, Letter.BLANK]
+    )
 
-    actions = board.get_all_valid_moves([Letter.A, Letter.B, Letter.C, Letter.D, Letter.BLANK])
+    print(f"LENGTH OF ACTIONS: {len(actions)}")
 
     a = random.choice(actions)
     board.place_word(a)
 
     print(board)
+
+    test_all_actions(actions)
+
+
+def test_all_actions(actions):
+    gaddag = Gaddag()
+    gaddag.build_from_file(
+        wordlist_path=os.path.join("dictionary", "nwl_2023.txt"), use_cache=True
+    )
+    allValid = True
+    for a in actions:
+        board = Board(gaddag)
+        board.place_word(
+            [char_to_letter(c) for c in "HELLO"],
+            (7, 5),  # so HELLO spans cols 5–9, row 7, crossing center (7,7)
+            (7, 9),
+        )
+        board.place_word(
+            [Letter.B, Letter.E],
+            (6, 6),
+            (7, 6),
+        )
+        board.place_word(
+            [Letter.A, Letter.L, Letter.E],
+            (6, 8),
+            (8, 8),
+        )
+        board.place_word(a)
+
+        invalid = board.validate_board()
+        if len(invalid) != 0:
+            print("INVALID: ")
+            print(board)
+            print(invalid)
+
+        allValid = allValid and (len(invalid) == 0)
+    
+    print(allValid)
 
 
 if __name__ == "__main__":

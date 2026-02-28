@@ -104,12 +104,13 @@ PYBIND11_MODULE(_cpp_ext, m) {
       });
 
   py::class_<Move>(m, "Move")
-      .def(py::init<Point, Point, std::vector<Letter>, int>(),
+      .def(py::init<Point, Point, std::vector<Letter>, std::vector<bool>, int>(),
            py::arg("start"), py::arg("end"), py::arg("letters"),
-           py::arg("score"))
+           py::arg("is_blank"), py::arg("score"))
       .def_readwrite("start", &Move::start)
       .def_readwrite("end", &Move::end)
       .def_readwrite("letters", &Move::letters)
+      .def_readwrite("is_blank", &Move::is_blank)
       .def_readwrite("score", &Move::score)
       .def("__repr__", [](const Move &mv) {
         return "Move(start=(" + std::to_string(mv.start.row) + "," +
