@@ -58,8 +58,7 @@ std::vector<Letter> unique_rack_tiles(const std::vector<Letter> &rack) {
 
 // ── Board private method implementations ──────────────────────────────────────
 
-const std::unordered_set<Letter> &
-Board::get_cross_checks_for(int r, int c, bool vertical) const {
+CrossCheckSet Board::get_cross_checks_for(int r, int c, bool vertical) const {
   // When generating horizontal moves, we need vertical cross-checks (a tile
   // placed horizontally must form valid vertical words with its neighbors).
   // Symmetrically, vertical moves use horizontal cross-checks.
@@ -145,7 +144,7 @@ void Board::extend_right(int r, int c, bool vertical,
     const auto &cc = get_cross_checks_for(r, c, vertical);
     for (Letter rack_tile : unique_rack_tiles(rack)) {
       for (auto [gaddag_L, is_blank] : candidates_for(rack_tile)) {
-        if (cc.count(gaddag_L) == 0)
+        if (!cross_check_has(cc, gaddag_L))
           continue;
 
         right_part.push_back({gaddag_L, is_blank, true});
@@ -192,7 +191,7 @@ void Board::extend_left(int r, int c, bool vertical,
     const auto &cc = get_cross_checks_for(r, c, vertical);
     for (Letter rack_tile : unique_rack_tiles(rack)) {
       for (auto [gaddag_L, is_blank] : candidates_for(rack_tile)) {
-        if (cc.count(gaddag_L) == 0)
+        if (!cross_check_has(cc, gaddag_L))
           continue;
 
         auto next_state = state->get_next_state(letter_to_key(gaddag_L));
@@ -226,7 +225,7 @@ void Board::generate_for_anchor(int r, int c, bool vertical,
     // going left in GADDAG order; then cross delimiter; then extend right.
     for (Letter rack_tile : unique_rack_tiles(rack)) {
       for (auto [gaddag_L, is_blank] : candidates_for(rack_tile)) {
-        if (cc_anchor.count(gaddag_L) == 0)
+        if (!cross_check_has(cc_anchor, gaddag_L))
           continue;
 
         auto state = dict_->root->get_next_state(letter_to_key(gaddag_L));
@@ -309,7 +308,7 @@ void Board::generate_for_anchor(int r, int c, bool vertical,
 
     for (Letter rack_tile : unique_rack_tiles(rack)) {
       for (auto [gaddag_L, is_blank] : candidates_for(rack_tile)) {
-        if (cc_anchor.count(gaddag_L) == 0)
+        if (!cross_check_has(cc_anchor, gaddag_L))
           continue;
 
         auto state = dict_->root->get_next_state(letter_to_key(gaddag_L));

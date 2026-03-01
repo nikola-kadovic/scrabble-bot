@@ -233,9 +233,10 @@ PYBIND11_MODULE(_cpp_ext, m) {
                                  py::list row;
                                  for (int c = 0; c < BOARD_COLS; c++) {
                                    py::set s;
-                                   for (Letter l :
-                                        b.horizontal_cross_checks[r][c]) {
-                                     s.add(l);
+                                   CrossCheckSet mask = b.horizontal_cross_checks[r][c];
+                                   for (int i = 0; i < 26; i++) {
+                                     if ((mask >> i) & 1u)
+                                       s.add(static_cast<Letter>(i));
                                    }
                                    row.append(s);
                                  }
@@ -251,9 +252,10 @@ PYBIND11_MODULE(_cpp_ext, m) {
                                  py::list row;
                                  for (int c = 0; c < BOARD_COLS; c++) {
                                    py::set s;
-                                   for (Letter l :
-                                        b.vertical_cross_checks[r][c]) {
-                                     s.add(l);
+                                   CrossCheckSet mask = b.vertical_cross_checks[r][c];
+                                   for (int i = 0; i < 26; i++) {
+                                     if ((mask >> i) & 1u)
+                                       s.add(static_cast<Letter>(i));
                                    }
                                    row.append(s);
                                  }

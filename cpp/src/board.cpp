@@ -16,11 +16,13 @@ Board::Board(std::shared_ptr<Gaddag> dictionary)
   build_square_types();
 
   // Initialize all cross-check sets with all letters that appear in the GADDAG
-  auto dict_letters = dict_->get_dictionary_letters();
+  CrossCheckSet dict_mask = CROSS_CHECK_NONE;
+  for (Letter l : dict_->get_dictionary_letters())
+    dict_mask = cross_check_add(dict_mask, l);
   for (int r = 0; r < BOARD_ROWS; r++) {
     for (int c = 0; c < BOARD_COLS; c++) {
-      horizontal_cross_checks[r][c] = dict_letters;
-      vertical_cross_checks[r][c] = dict_letters;
+      horizontal_cross_checks[r][c] = dict_mask;
+      vertical_cross_checks[r][c] = dict_mask;
     }
   }
 
@@ -388,25 +390,21 @@ int Board::place_word_vertically(const std::vector<Letter> &word, int sp_row,
 // ───────────────────────────────────────────────
 
 void Board::update_horizontal_cross_checks(int row, int col) {
-  auto &checks = horizontal_cross_checks[row][col];
+  CrossCheckSet mask = CROSS_CHECK_NONE;
   for (Letter letter : dict_->get_dictionary_letters()) {
-    if (letter_makes_word_horizontally(row, col, letter)) {
-      checks.insert(letter);
-    } else {
-      checks.erase(letter);
-    }
+    if (letter_makes_word_horizontally(row, col, letter))
+      mask = cross_check_add(mask, letter);
   }
+  horizontal_cross_checks[row][col] = mask;
 }
 
 void Board::update_vertical_cross_checks(int row, int col) {
-  auto &checks = vertical_cross_checks[row][col];
+  CrossCheckSet mask = CROSS_CHECK_NONE;
   for (Letter letter : dict_->get_dictionary_letters()) {
-    if (letter_makes_word_vertically(row, col, letter)) {
-      checks.insert(letter);
-    } else {
-      checks.erase(letter);
-    }
+    if (letter_makes_word_vertically(row, col, letter))
+      mask = cross_check_add(mask, letter);
   }
+  vertical_cross_checks[row][col] = mask;
 }
 
 // ─── letter_makes_word_horizontally ──────────────────────────────────────────

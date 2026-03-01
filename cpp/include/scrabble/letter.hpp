@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <bit>
 #include <cstdint>
 #include <functional>
 #include <string>
@@ -89,6 +90,27 @@ inline std::string letter_to_key(Letter l) {
 
 constexpr int get_letter_score(Letter l) noexcept {
   return LETTER_SCORES[static_cast<uint8_t>(l)];
+}
+
+// ── Cross-check set ───────────────────────────────────────────────────────────
+// Compact bitmask of valid letters for a square's cross-checks.
+// Bit i is set when Letter(i) is allowed (bits 0–25 = A–Z).
+using CrossCheckSet = uint32_t;
+
+inline constexpr CrossCheckSet CROSS_CHECK_NONE = 0u;
+inline constexpr CrossCheckSet CROSS_CHECK_ALL  = (1u << 26) - 1u;
+
+inline constexpr bool cross_check_has(CrossCheckSet s, Letter l) noexcept {
+  return (s >> static_cast<uint8_t>(l)) & 1u;
+}
+
+inline constexpr CrossCheckSet cross_check_add(CrossCheckSet s, Letter l) noexcept {
+  return s | (1u << static_cast<uint8_t>(l));
+}
+
+// Number of letters present in the cross-check set (popcount of bits 0-25).
+inline int cross_check_count(CrossCheckSet s) noexcept {
+  return std::popcount(s & CROSS_CHECK_ALL);
 }
 
 } // namespace scrabble

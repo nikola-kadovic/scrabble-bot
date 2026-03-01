@@ -25,7 +25,7 @@ enum class SquareType : uint8_t {
 };
 
 using CrossChecks =
-    std::array<std::array<std::unordered_set<Letter>, BOARD_COLS>, BOARD_ROWS>;
+    std::array<std::array<CrossCheckSet, BOARD_COLS>, BOARD_ROWS>;
 
 class Board {
 public:
@@ -113,8 +113,7 @@ private:
 
   // Returns the cross-check set for position (r,c) given move direction.
   // Horizontal moves check vertical_cross_checks; vertical check horizontal.
-  const std::unordered_set<Letter> &get_cross_checks_for(int r, int c,
-                                                         bool vertical) const;
+  CrossCheckSet get_cross_checks_for(int r, int c, bool vertical) const;
 
   // Record a completed move into results.
   void record_move(const std::vector<TileEntry> &left_part,

@@ -109,22 +109,22 @@ TEST_CASE("Board horizontal cross check: ACT vertical, T+A pair", "[board]") {
     b.place_word({Letter::A, Letter::C, Letter::T}, Point{7, 7}, Point{9, 7});
 
     // Square to the left of 'A' (row 7, col 6) should allow only T
-    const auto& cc_76 = b.horizontal_cross_checks[7][6];
-    CHECK(cc_76.size() == 1);
-    CHECK(cc_76.count(Letter::T) == 1);
+    CrossCheckSet cc_76 = b.horizontal_cross_checks[7][6];
+    CHECK(cross_check_count(cc_76) == 1);
+    CHECK(cross_check_has(cc_76, Letter::T));
 
     // Square to the right of 'A' (row 7, col 8) should be empty
-    CHECK(b.horizontal_cross_checks[7][8].empty());
+    CHECK(b.horizontal_cross_checks[7][8] == CROSS_CHECK_NONE);
 
     // Square to the right of 'T' (row 9, col 8) should allow only A
-    const auto& cc_98 = b.horizontal_cross_checks[9][8];
-    CHECK(cc_98.size() == 1);
-    CHECK(cc_98.count(Letter::A) == 1);
+    CrossCheckSet cc_98 = b.horizontal_cross_checks[9][8];
+    CHECK(cross_check_count(cc_98) == 1);
+    CHECK(cross_check_has(cc_98, Letter::A));
 
     // Square below the word (row 10, col 7): only S (ACTS)
-    const auto& vc_10_7 = b.vertical_cross_checks[10][7];
-    CHECK(vc_10_7.size() == 1);
-    CHECK(vc_10_7.count(Letter::S) == 1);
+    CrossCheckSet vc_10_7 = b.vertical_cross_checks[10][7];
+    CHECK(cross_check_count(vc_10_7) == 1);
+    CHECK(cross_check_has(vc_10_7, Letter::S));
 }
 
 TEST_CASE("Board horizontal cross check: PAYABLE example", "[board]") {
@@ -135,30 +135,30 @@ TEST_CASE("Board horizontal cross check: PAYABLE example", "[board]") {
     b.place_word({Letter::P, Letter::A}, Point{7, 5}, Point{7, 6});
 
     // Below P at (8,5): only A (from PA)
-    CHECK(b.vertical_cross_checks[8][5].size() == 1);
+    CHECK(cross_check_count(b.vertical_cross_checks[8][5]) == 1);
 
     // Above A at (6,6): only P (from PA)
-    CHECK(b.vertical_cross_checks[6][6].size() == 1);
-    CHECK(b.vertical_cross_checks[6][6].count(Letter::P) == 1);
+    CHECK(cross_check_count(b.vertical_cross_checks[6][6]) == 1);
+    CHECK(cross_check_has(b.vertical_cross_checks[6][6], Letter::P));
 
     // Above P at (6,5): nothing
-    CHECK(b.vertical_cross_checks[6][5].empty());
+    CHECK(b.vertical_cross_checks[6][5] == CROSS_CHECK_NONE);
     // Below A at (8,6): nothing
-    CHECK(b.vertical_cross_checks[8][6].empty());
+    CHECK(b.vertical_cross_checks[8][6] == CROSS_CHECK_NONE);
 
     // Left of P at (7,4): nothing
-    CHECK(b.horizontal_cross_checks[7][4].empty());
+    CHECK(b.horizontal_cross_checks[7][4] == CROSS_CHECK_NONE);
     // Right of A at (7,7): nothing
-    CHECK(b.horizontal_cross_checks[7][7].empty());
+    CHECK(b.horizontal_cross_checks[7][7] == CROSS_CHECK_NONE);
 
     // Place "ABLE" horizontally at (7,8)
     b.place_word({Letter::A, Letter::B, Letter::L, Letter::E}, Point{7, 8}, Point{7, 11});
 
     // Gap at (7,7) should allow R and Y (for PARABLE / PAYABLE)
-    const auto& gap = b.horizontal_cross_checks[7][7];
-    CHECK(gap.size() == 2);
-    CHECK(gap.count(Letter::R) == 1);
-    CHECK(gap.count(Letter::Y) == 1);
+    CrossCheckSet gap = b.horizontal_cross_checks[7][7];
+    CHECK(cross_check_count(gap) == 2);
+    CHECK(cross_check_has(gap, Letter::R));
+    CHECK(cross_check_has(gap, Letter::Y));
 }
 
 TEST_CASE("Board place_word throws on out of bounds", "[board]") {
