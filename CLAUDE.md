@@ -17,10 +17,10 @@ ctest --test-dir build --output-on-failure -C Release
 # Or run directly on Windows:
 .\build\cpp\tests\Release\scrabble_tests.exe --reporter console -v
 
-# Python smoke tests
+# Python integration tests
 uv run pytest scrabble_bot/tests/ -v
-uv run pytest scrabble_bot/tests/test_smoke_board.py -v
-uv run pytest scrabble_bot/tests/test_smoke_gaddag.py -v
+uv run pytest scrabble_bot/tests/test_integration_board.py -v
+uv run pytest scrabble_bot/tests/test_integration_gaddag.py -v
 ```
 
 Formatting is handled by autopep8 (max line length 100, aggressive level 1).
@@ -47,7 +47,7 @@ scrabble_bot/
   __init__.py         <- re-exports from _cpp_ext
   board/__init__.py   <- backward-compat re-exports
   gaddag/__init__.py  <- backward-compat re-exports
-  tests/              <- Python smoke tests (pytest)
+  tests/              <- Python integration tests (pytest)
 temp/                 <- runtime cache (.bin files, gitignored)
 ```
 

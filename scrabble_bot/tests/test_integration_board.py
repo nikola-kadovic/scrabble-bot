@@ -1,5 +1,5 @@
 """
-Python smoke tests for the Board pybind11 bindings.
+Python integration tests for the Board pybind11 bindings.
 These verify that the C++ extension is correctly wired to Python,
 reproducing the key assertions from the original test_board.py.
 """

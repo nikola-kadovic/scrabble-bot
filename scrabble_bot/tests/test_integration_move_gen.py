@@ -1,5 +1,5 @@
 """
-Smoke tests for move generation correctness.
+Integration tests for move generation correctness.
 Uses the real NWL wordlist (cached) so these are integration-level tests.
 """
 
