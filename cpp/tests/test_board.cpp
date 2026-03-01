@@ -11,6 +11,14 @@ std::shared_ptr<Gaddag> make_gaddag(std::vector<std::string> words) {
     g->build_from_words(words);
     return g;
 }
+
+int count_anchors(const Board& b) {
+    int n = 0;
+    for (int r = 0; r < BOARD_ROWS; r++)
+        for (int c = 0; c < BOARD_COLS; c++)
+            if (b.anchor_points[r][c]) n++;
+    return n;
+}
 } // namespace
 
 TEST_CASE("Board initializes 15x15 grid of BLANK", "[board]") {
@@ -60,8 +68,8 @@ TEST_CASE("Board anchor points seeded with center on init", "[board]") {
     auto g = make_gaddag({});
     Board b(g);
     // Constructor seeds {7,7} as the first-move anchor point.
-    CHECK(b.anchor_points.size() == 1);
-    CHECK(b.anchor_points.count(Point{7, 7}) == 1);
+    CHECK(count_anchors(b) == 1);
+    CHECK(b.anchor_points[7][7]);
 }
 
 TEST_CASE("Board anchor points after horizontal word", "[board]") {
@@ -69,13 +77,13 @@ TEST_CASE("Board anchor points after horizontal word", "[board]") {
     Board b(g);
     b.place_word({Letter::A, Letter::C, Letter::T}, Point{7, 7}, Point{7, 9});
 
-    CHECK(b.anchor_points.size() == 8);
+    CHECK(count_anchors(b) == 8);
 
-    std::unordered_set<Point, PointHash> expected = {
+    std::vector<std::pair<int,int>> expected = {
         {6,7},{8,7},{6,8},{8,8},{6,9},{8,9},{7,6},{7,10}
     };
-    for (const auto& p : expected) {
-        CHECK(b.anchor_points.count(p) == 1);
+    for (const auto& [r, c] : expected) {
+        CHECK(b.anchor_points[r][c]);
     }
 }
 
@@ -84,13 +92,13 @@ TEST_CASE("Board anchor points after vertical word", "[board]") {
     Board b(g);
     b.place_word({Letter::A, Letter::C, Letter::T}, Point{7, 7}, Point{9, 7});
 
-    CHECK(b.anchor_points.size() == 8);
+    CHECK(count_anchors(b) == 8);
 
-    std::unordered_set<Point, PointHash> expected = {
+    std::vector<std::pair<int,int>> expected = {
         {6,7},{10,7},{7,6},{8,6},{9,6},{7,8},{8,8},{9,8}
     };
-    for (const auto& p : expected) {
-        CHECK(b.anchor_points.count(p) == 1);
+    for (const auto& [r, c] : expected) {
+        CHECK(b.anchor_points[r][c]);
     }
 }
 
@@ -100,7 +108,7 @@ TEST_CASE("Board anchor points after multiple words", "[board]") {
     b.place_word({Letter::A, Letter::C, Letter::T}, Point{7, 7}, Point{9, 7});
     b.place_word({Letter::C, Letter::A, Letter::T}, Point{8, 7}, Point{8, 9});
 
-    CHECK(b.anchor_points.size() == 10);
+    CHECK(count_anchors(b) == 10);
 }
 
 TEST_CASE("Board horizontal cross check: ACT vertical, T+A pair", "[board]") {

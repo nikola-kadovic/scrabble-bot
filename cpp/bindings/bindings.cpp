@@ -220,9 +220,10 @@ PYBIND11_MODULE(_cpp_ext, m) {
       .def_property_readonly("_anchor_points",
                              [](const Board &b) {
                                py::set s;
-                               for (const auto &p : b.anchor_points) {
-                                 s.add(py::make_tuple(p.row, p.col));
-                               }
+                               for (int r = 0; r < BOARD_ROWS; r++)
+                                 for (int c = 0; c < BOARD_COLS; c++)
+                                   if (b.anchor_points[r][c])
+                                     s.add(py::make_tuple(r, c));
                                return s;
                              })
       // _horizontal_cross_checks: list[list[set[Letter]]]

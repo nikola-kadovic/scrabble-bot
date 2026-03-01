@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cstddef>
-
 namespace scrabble {
 
 struct Point {
@@ -13,10 +11,5 @@ struct Point {
   }
 };
 
-struct PointHash {
-  size_t operator()(const Point &p) const noexcept {
-    return static_cast<size_t>(p.row) * 31 + static_cast<size_t>(p.col);
-  }
-};
 
 } // namespace scrabble

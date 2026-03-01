@@ -8,7 +8,6 @@
 #include <array>
 #include <memory>
 #include <string>
-#include <unordered_set>
 #include <vector>
 
 namespace scrabble {
@@ -37,7 +36,7 @@ public:
   CrossChecks vertical_cross_checks;   // letters valid for vertical words (used
                                        // when placing horizontally)
 
-  std::unordered_set<Point, PointHash> anchor_points;
+  std::array<std::array<bool, BOARD_COLS>, BOARD_ROWS> anchor_points{};
 
   explicit Board(std::shared_ptr<Gaddag> dictionary);
 

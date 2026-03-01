@@ -29,7 +29,7 @@ Board::Board(std::shared_ptr<Gaddag> dictionary)
   // Seed the center square as the initial anchor point for the first move.
   // update_anchor_points() called after place_word() will remove {7,7} (now
   // occupied) and populate real neighbors.
-  anchor_points.insert(Point{7, 7});
+  anchor_points[7][7] = true;
 }
 
 // ─── Square type initialization
@@ -553,39 +553,39 @@ void Board::update_anchor_points(int r1, int c1, int r2, int c2) {
 
   if (vertical) {
     for (int r = r1; r <= r2; r++) {
-      anchor_points.erase({r, c1});
+      anchor_points[r][c1] = false;
       // Horizontal neighbors
       if (in_bounds(r, c1 - 1) && board[r][c1 - 1] == Letter::BLANK) {
-        anchor_points.insert({r, c1 - 1});
+        anchor_points[r][c1 - 1] = true;
       }
       if (in_bounds(r, c1 + 1) && board[r][c1 + 1] == Letter::BLANK) {
-        anchor_points.insert({r, c1 + 1});
+        anchor_points[r][c1 + 1] = true;
       }
     }
     // Vertical endpoints
     if (in_bounds(r1 - 1, c1) && board[r1 - 1][c1] == Letter::BLANK) {
-      anchor_points.insert({r1 - 1, c1});
+      anchor_points[r1 - 1][c1] = true;
     }
     if (in_bounds(r2 + 1, c2) && board[r2 + 1][c2] == Letter::BLANK) {
-      anchor_points.insert({r2 + 1, c2});
+      anchor_points[r2 + 1][c2] = true;
     }
   } else {
     for (int c = c1; c <= c2; c++) {
-      anchor_points.erase({r1, c});
+      anchor_points[r1][c] = false;
       // Vertical neighbors
       if (in_bounds(r1 - 1, c) && board[r1 - 1][c] == Letter::BLANK) {
-        anchor_points.insert({r1 - 1, c});
+        anchor_points[r1 - 1][c] = true;
       }
       if (in_bounds(r1 + 1, c) && board[r1 + 1][c] == Letter::BLANK) {
-        anchor_points.insert({r1 + 1, c});
+        anchor_points[r1 + 1][c] = true;
       }
     }
     // Horizontal endpoints
     if (in_bounds(r1, c1 - 1) && board[r1][c1 - 1] == Letter::BLANK) {
-      anchor_points.insert({r1, c1 - 1});
+      anchor_points[r1][c1 - 1] = true;
     }
     if (in_bounds(r2, c2 + 1) && board[r2][c2 + 1] == Letter::BLANK) {
-      anchor_points.insert({r2, c2 + 1});
+      anchor_points[r2][c2 + 1] = true;
     }
   }
 }
@@ -742,7 +742,7 @@ std::string Board::to_string() const {
       out << ' ';
       if (l != Letter::BLANK) {
         out << BOLD << letter_to_char(l) << RESET;
-      } else if (anchor_points.count(Point{r, c})) {
+      } else if (anchor_points[r][c]) {
         out << GREEN << '.' << RESET;
       } else {
         out << square_color(square_types[r][c])

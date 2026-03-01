@@ -299,7 +299,7 @@ void Board::generate_for_anchor(int r, int c, bool vertical,
       int pos_r = back_r, pos_c = back_c;
       while (in_bounds(pos_r, pos_c) &&
              board[pos_r][pos_c] == Letter::BLANK &&
-             anchor_points.count(Point{pos_r, pos_c}) == 0) {
+             !anchor_points[pos_r][pos_c]) {
         left_limit++;
         pos_r -= dr;
         pos_c -= dc;
@@ -328,10 +328,12 @@ void Board::generate_for_anchor(int r, int c, bool vertical,
 std::vector<Move>
 Board::get_all_valid_moves(const std::vector<Letter> &rack) const {
   std::vector<Move> results;
-  for (const auto &anchor : anchor_points) {
-    generate_for_anchor(anchor.row, anchor.col, false, rack, results);
-    generate_for_anchor(anchor.row, anchor.col, true, rack, results);
-  }
+  for (int r = 0; r < BOARD_ROWS; r++)
+    for (int c = 0; c < BOARD_COLS; c++)
+      if (anchor_points[r][c]) {
+        generate_for_anchor(r, c, false, rack, results);
+        generate_for_anchor(r, c, true, rack, results);
+      }
   return results;
 }
 
