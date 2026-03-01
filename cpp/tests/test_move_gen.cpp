@@ -152,3 +152,34 @@ TEST_CASE("generated move scores match calculate_score", "[move_gen]") {
     int expected = board.calculate_score(cats_word, 7, 7, false);
     CHECK(it->score == expected);
 }
+
+// ── Test 5: cross-check not stale after adjacent word ─────────────────────────
+
+TEST_CASE("cross-check not stale after adjacent word", "[move_gen]") {
+    // Dictionary has AB, CD, ABCD and XAB — but NOT XABCD.
+    // Place AB at (7,7)-(7,8), then CD at (7,9)-(7,10) (contiguous to the right).
+    // The merged run is ABCD.  With rack {X}, placing X at (7,6) would form XABCD
+    // horizontally — which is NOT in the dictionary.  The horizontal_cc for (7,6)
+    // must be recomputed after the second place_word call so that X is rejected.
+    auto g = make_gaddag({"AB", "CD", "ABCD", "XAB"});
+    Board board(g);
+
+    board.place_word({Letter::A, Letter::B}, Point{7, 7}, Point{7, 8});
+    board.place_word({Letter::C, Letter::D}, Point{7, 9}, Point{7, 10});
+
+    std::vector<Letter> rack = {Letter::X};
+    auto moves = board.get_all_valid_moves(rack);
+
+    // X at (7,6) would form XABCD → not in dictionary → must NOT appear
+    bool bad_move = false;
+    for (const auto& m : moves) {
+        bool vert = (m.start.col == m.end.col);
+        if (!vert && m.start.row == 7 && m.start.col == 6) {
+            bad_move = true;
+        }
+    }
+    CHECK(!bad_move);
+
+    // All generated moves must produce valid cross-words
+    verify_all_moves(board, moves);
+}

@@ -65,8 +65,8 @@ void Board::build_square_types() {
       square_types[i][j] = SquareType::TRIPLE_WORD;
     }
   }
-  // Restore center to DOUBLE_WORD (the TWS loop above would have overridden it);
-  // place_word will clear it to DEFAULT after the first move.
+  // Restore center to DOUBLE_WORD (the TWS loop above would have overridden
+  // it); place_word will clear it to DEFAULT after the first move.
   square_types[7][7] = SquareType::DOUBLE_WORD;
 
   // Double letter squares (4 quadrant symmetry from paper positions)
@@ -112,11 +112,13 @@ int Board::place_word(const std::vector<Letter> &word, Point start, Point end) {
     throw std::invalid_argument("Starting point is out of bounds");
 
   bool vertical = (start.col == end.col);
-  int score = vertical
-    ? place_word_vertically(word, start.row, start.col)
-    : place_word_horizontally(word, start.row, start.col);
+  int score = vertical ? place_word_vertically(word, start.row, start.col)
+                       : place_word_horizontally(word, start.row, start.col);
 
-  if (first_move_) { first_move_ = false; square_types[7][7] = SquareType::DEFAULT; }
+  if (first_move_) {
+    first_move_ = false;
+    square_types[7][7] = SquareType::DEFAULT;
+  }
 
   return score;
 }
@@ -278,18 +280,41 @@ int Board::place_word_horizontally(const std::vector<Letter> &word, int sp_row,
   for (int i = 0; i < len; i++)
     board[sp_row][sp_col + i] = word[i];
 
-  // Update cross-checks
+  // Update cross-checks (board already has new letters placed)
   for (int i = 0; i < len; i++) {
-    int r = sp_row;
     int c = sp_col + i;
-    if (in_bounds(r - 1, c))
-      update_vertical_cross_checks(r - 1, c);
-    if (in_bounds(r + 1, c))
-      update_vertical_cross_checks(r + 1, c);
-    if (i == 0 && in_bounds(r, c - 1))
-      update_horizontal_cross_checks(r, c - 1);
-    if (i == len - 1 && in_bounds(r, c + 1))
-      update_horizontal_cross_checks(r, c + 1);
+    // Walk up to first blank above this column tile
+    {
+      int rr = sp_row - 1;
+      while (in_bounds(rr, c) && board[rr][c] != Letter::BLANK)
+        rr--;
+      if (in_bounds(rr, c))
+        update_vertical_cross_checks(rr, c);
+    }
+    // Walk down to first blank below this column tile
+    {
+      int rr = sp_row + 1;
+      while (in_bounds(rr, c) && board[rr][c] != Letter::BLANK)
+        rr++;
+      if (in_bounds(rr, c))
+        update_vertical_cross_checks(rr, c);
+    }
+  }
+  // Walk left past any pre-existing tiles to the first blank
+  {
+    int c = sp_col - 1;
+    while (in_bounds(sp_row, c) && board[sp_row][c] != Letter::BLANK)
+      c--;
+    if (in_bounds(sp_row, c))
+      update_horizontal_cross_checks(sp_row, c);
+  }
+  // Walk right past the word (and any pre-existing tiles) to the first blank
+  {
+    int c = sp_col + len;
+    while (in_bounds(sp_row, c) && board[sp_row][c] != Letter::BLANK)
+      c++;
+    if (in_bounds(sp_row, c))
+      update_horizontal_cross_checks(sp_row, c);
   }
 
   update_anchor_points(sp_row, sp_col, sp_row, sp_col + len - 1);
@@ -333,18 +358,41 @@ int Board::place_word_vertically(const std::vector<Letter> &word, int sp_row,
   for (int i = 0; i < len; i++)
     board[sp_row + i][sp_col] = word[i];
 
-  // Update cross-checks
+  // Update cross-checks (board already has new letters placed)
   for (int i = 0; i < len; i++) {
     int r = sp_row + i;
-    int c = sp_col;
-    if (in_bounds(r, c - 1))
-      update_horizontal_cross_checks(r, c - 1);
-    if (in_bounds(r, c + 1))
-      update_horizontal_cross_checks(r, c + 1);
-    if (i == 0 && in_bounds(r - 1, c))
-      update_vertical_cross_checks(r - 1, c);
-    if (i == len - 1 && in_bounds(r + 1, c))
-      update_vertical_cross_checks(r + 1, c);
+    // Walk left to first blank left of this row tile
+    {
+      int cc = sp_col - 1;
+      while (in_bounds(r, cc) && board[r][cc] != Letter::BLANK)
+        cc--;
+      if (in_bounds(r, cc))
+        update_horizontal_cross_checks(r, cc);
+    }
+    // Walk right to first blank right of this row tile
+    {
+      int cc = sp_col + 1;
+      while (in_bounds(r, cc) && board[r][cc] != Letter::BLANK)
+        cc++;
+      if (in_bounds(r, cc))
+        update_horizontal_cross_checks(r, cc);
+    }
+  }
+  // Walk up past any pre-existing tiles to the first blank
+  {
+    int r = sp_row - 1;
+    while (in_bounds(r, sp_col) && board[r][sp_col] != Letter::BLANK)
+      r--;
+    if (in_bounds(r, sp_col))
+      update_vertical_cross_checks(r, sp_col);
+  }
+  // Walk down past the word (and any pre-existing tiles) to the first blank
+  {
+    int r = sp_row + len;
+    while (in_bounds(r, sp_col) && board[r][sp_col] != Letter::BLANK)
+      r++;
+    if (in_bounds(r, sp_col))
+      update_vertical_cross_checks(r, sp_col);
   }
 
   update_anchor_points(sp_row, sp_col, sp_row + len - 1, sp_col);
