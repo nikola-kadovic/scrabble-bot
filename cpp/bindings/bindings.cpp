@@ -118,8 +118,33 @@ PYBIND11_MODULE(_cpp_ext, m) {
   // seamlessly.
   py::class_<State, std::shared_ptr<State>>(m, "State")
       .def(py::init<>())
-      .def_readwrite("arcs", &State::arcs)
-      .def_readwrite("letters_that_make_a_word", &State::letters_that_make_a_word)
+      .def_property_readonly("arcs",
+                             [](const State& self) {
+                               py::dict d;
+                               for (int i = 0; i < 26; i++) {
+                                 if (self.arcs[i]) {
+                                   std::string key(1, static_cast<char>('A' + i));
+                                   d[py::str(key)] = Arc(self.arcs[i]);
+                                 }
+                               }
+                               if (self.arcs[26]) {
+                                 d[py::str("_")] = Arc(self.arcs[26]);
+                               }
+                               if (self.arcs[DELIMITER_ARC_INDEX]) {
+                                 d[py::str(DELIMITER)] = Arc(self.arcs[DELIMITER_ARC_INDEX]);
+                               }
+                               return d;
+                             })
+      .def_property_readonly("letters_that_make_a_word",
+                             [](const State& self) {
+                               py::set s;
+                               for (int i = 0; i < 26; i++) {
+                                 if (self.letters_that_make_a_word[i]) {
+                                   s.add(py::str(std::string(1, static_cast<char>('A' + i))));
+                                 }
+                               }
+                               return s;
+                             })
       .def(
           "add_arc",
           [](State& self, const std::string& letter, const py::object& dest) {

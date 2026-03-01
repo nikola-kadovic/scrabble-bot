@@ -1,9 +1,9 @@
 #pragma once
 
+#include <array>
 #include <memory>
 #include <optional>
 #include <string>
-#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
@@ -14,6 +14,10 @@ namespace scrabble {
 // The delimiter character ◇ (U+25C7) encoded as UTF-8.
 // On MSVC, compile with /utf-8 so string literals are treated as UTF-8.
 constexpr const char* DELIMITER = "\xE2\x97\x87";
+
+// Arc index for the DELIMITER arc in the State::arcs array.
+// Indices 0-25: Letters A-Z, 26: BLANK, 27: DELIMITER.
+constexpr int DELIMITER_ARC_INDEX = 27;
 
 class State;
 
@@ -26,8 +30,8 @@ struct Arc {
 
 class State {
  public:
-  std::unordered_map<std::string, Arc> arcs;
-  std::unordered_set<char> letters_that_make_a_word;
+  std::array<std::shared_ptr<State>, 28> arcs{};
+  std::array<bool, 27> letters_that_make_a_word{};
 
   State() = default;
 
@@ -42,8 +46,12 @@ class State {
 
   void add_ending_letter(char letter);
 
-  // Returns the next state for `letter`, or nullptr if no such arc exists.
+  // Returns the next state for `letter` string key, or nullptr if no such arc exists.
   std::shared_ptr<State> get_next_state(const std::string& letter) const;
+
+  // Returns the next state for arc index (0-25=A-Z, 26=BLANK, 27=DELIMITER),
+  // or nullptr if no such arc exists. Faster than the string overload.
+  std::shared_ptr<State> get_next_state(int arc_index) const;
 };
 
 class Gaddag {

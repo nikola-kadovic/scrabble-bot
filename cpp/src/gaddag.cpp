@@ -22,33 +22,44 @@ Arc::Arc(std::shared_ptr<State> dest) : destination_state(std::move(dest)) {}
 // ─── State
 // ────────────────────────────────────────────────────────────────────
 
+namespace {
+
+// Maps a string-based GADDAG key to its arc array index.
+// Indices 0-25: Letters A-Z, 26: BLANK ('_'), 27: DELIMITER.
+static int key_to_arc_index(const std::string& key) {
+  if (key == DELIMITER) return DELIMITER_ARC_INDEX;
+  char c = key[0];
+  return (c == '_') ? 26 : (c - 'A');
+}
+
+}  // namespace
+
 std::shared_ptr<State> State::add_arc(const std::string& letter, std::shared_ptr<State> dest) {
-  if (!dest) {
-    dest = std::make_shared<State>();
+  int idx = key_to_arc_index(letter);
+  if (!arcs[idx]) {
+    arcs[idx] = dest ? dest : std::make_shared<State>();
   }
-  // Only insert if arc doesn't already exist; always return existing
-  // destination.
-  if (arcs.find(letter) == arcs.end()) {
-    arcs.emplace(letter, Arc(dest));
-  }
-  return arcs.at(letter).destination_state;
+  return arcs[idx];
 }
 
 std::shared_ptr<State> State::add_ending_arc(const std::string& letter, char ending_letter) {
-  if (arcs.find(letter) == arcs.end()) {
-    arcs.emplace(letter, Arc(std::make_shared<State>()));
+  int idx = key_to_arc_index(letter);
+  if (!arcs[idx]) {
+    arcs[idx] = std::make_shared<State>();
   }
-  arcs.at(letter).destination_state->add_ending_letter(ending_letter);
-  return arcs.at(letter).destination_state;
+  arcs[idx]->add_ending_letter(ending_letter);
+  return arcs[idx];
 }
 
-void State::add_ending_letter(char letter) { letters_that_make_a_word.insert(letter); }
+void State::add_ending_letter(char letter) {
+  letters_that_make_a_word[static_cast<unsigned char>(letter - 'A')] = true;
+}
 
 std::shared_ptr<State> State::get_next_state(const std::string& letter) const {
-  auto it = arcs.find(letter);
-  if (it == arcs.end()) return nullptr;
-  return it->second.destination_state;
+  return get_next_state(key_to_arc_index(letter));
 }
+
+std::shared_ptr<State> State::get_next_state(int arc_index) const { return arcs[arc_index]; }
 
 // ─── Gaddag
 // ───────────────────────────────────────────────────────────────────
@@ -139,10 +150,9 @@ void Gaddag::add_word(const std::string& word) {
 
 std::unordered_set<Letter> Gaddag::get_dictionary_letters() const {
   std::unordered_set<Letter> result;
-  for (const auto& [key, arc] : root->arcs) {
-    if (key != DELIMITER) {
-      // key is a single ASCII char
-      result.insert(char_to_letter(key[0]));
+  for (int i = 0; i < 26; i++) {
+    if (root->arcs[i]) {
+      result.insert(static_cast<Letter>(i));
     }
   }
   return result;
@@ -169,23 +179,19 @@ void collect_states(State* s, std::unordered_map<State*, uint32_t>& ids,
   uint32_t id = static_cast<uint32_t>(ordered.size());
   ids[s] = id;
   ordered.push_back(s);
-  for (auto& [key, arc] : s->arcs) {
-    collect_states(arc.destination_state.get(), ids, ordered);
+  for (int i = 0; i < 28; i++) {
+    if (s->arcs[i]) {
+      collect_states(s->arcs[i].get(), ids, ordered);
+    }
   }
 }
 
 void write_u32(std::ostream& out, uint32_t v) { out.write(reinterpret_cast<const char*>(&v), 4); }
-void write_u16(std::ostream& out, uint16_t v) { out.write(reinterpret_cast<const char*>(&v), 2); }
 void write_u8(std::ostream& out, uint8_t v) { out.write(reinterpret_cast<const char*>(&v), 1); }
 
 uint32_t read_u32(std::istream& in) {
   uint32_t v = 0;
   in.read(reinterpret_cast<char*>(&v), 4);
-  return v;
-}
-uint16_t read_u16(std::istream& in) {
-  uint16_t v = 0;
-  in.read(reinterpret_cast<char*>(&v), 2);
   return v;
 }
 uint8_t read_u8(std::istream& in) {
@@ -209,7 +215,7 @@ void Gaddag::save_cache(const std::string& cache_path) const {
   // Header
   const char magic[] = "SCRABBLE";
   out.write(magic, 8);
-  write_u32(out, 1);  // version
+  write_u32(out, 2);  // version 2
 
   // Root ID
   write_u32(out, ids.at(root.get()));
@@ -219,18 +225,24 @@ void Gaddag::save_cache(const std::string& cache_path) const {
 
   // Each state
   for (State* s : ordered) {
-    // letters_that_make_a_word
-    write_u32(out, static_cast<uint32_t>(s->letters_that_make_a_word.size()));
-    for (char c : s->letters_that_make_a_word) {
-      write_u8(out, static_cast<uint8_t>(c));
+    // letters_that_make_a_word as a 26-bit bitmask
+    uint32_t bitmask = 0;
+    for (int i = 0; i < 26; i++) {
+      if (s->letters_that_make_a_word[i]) bitmask |= (1u << i);
     }
-    // arcs
-    write_u32(out, static_cast<uint32_t>(s->arcs.size()));
-    for (const auto& [key, arc] : s->arcs) {
-      uint16_t key_len = static_cast<uint16_t>(key.size());
-      write_u16(out, key_len);
-      out.write(key.data(), key_len);
-      write_u32(out, ids.at(arc.destination_state.get()));
+    write_u32(out, bitmask);
+
+    // arcs: count non-null entries, then write (arc_index, dest_id) pairs
+    uint8_t num_arcs = 0;
+    for (int i = 0; i < 28; i++) {
+      if (s->arcs[i]) num_arcs++;
+    }
+    write_u8(out, num_arcs);
+    for (int i = 0; i < 28; i++) {
+      if (s->arcs[i]) {
+        write_u8(out, static_cast<uint8_t>(i));
+        write_u32(out, ids.at(s->arcs[i].get()));
+      }
     }
   }
 }
@@ -245,7 +257,7 @@ bool Gaddag::load_cache(const std::string& cache_path) {
   if (std::strncmp(magic, "SCRABBLE", 8) != 0) return false;
 
   uint32_t version = read_u32(in);
-  if (version != 1) return false;
+  if (version != 2) return false;
 
   uint32_t root_id = read_u32(in);
   uint32_t num_states = read_u32(in);
@@ -263,19 +275,19 @@ bool Gaddag::load_cache(const std::string& cache_path) {
 
   // Fill in letters_that_make_a_word and arcs
   for (uint32_t i = 0; i < num_states; i++) {
-    uint32_t num_letters = read_u32(in);
-    for (uint32_t j = 0; j < num_letters; j++) {
-      uint8_t c = read_u8(in);
-      states[i]->letters_that_make_a_word.insert(static_cast<char>(c));
+    uint32_t bitmask = read_u32(in);
+    for (int j = 0; j < 26; j++) {
+      if ((bitmask >> j) & 1u) {
+        states[i]->letters_that_make_a_word[j] = true;
+      }
     }
-    uint32_t num_arcs = read_u32(in);
-    for (uint32_t j = 0; j < num_arcs; j++) {
-      uint16_t key_len = read_u16(in);
-      std::string key(key_len, '\0');
-      in.read(key.data(), key_len);
+    uint8_t num_arcs = read_u8(in);
+    for (uint8_t j = 0; j < num_arcs; j++) {
+      uint8_t arc_index = read_u8(in);
       uint32_t dest_id = read_u32(in);
       if (dest_id >= num_states) return false;
-      states[i]->arcs.emplace(key, Arc(states[dest_id]));
+      if (arc_index >= 28) return false;
+      states[i]->arcs[arc_index] = states[dest_id];
     }
   }
 

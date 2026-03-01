@@ -380,8 +380,7 @@ bool Board::letter_makes_word_horizontally(int row, int col, Letter letter) cons
   bool has_right = (col < BOARD_COLS - 1) && (board[row][col + 1] != Letter::BLANK);
 
   // Start traversal from root using the placed letter
-  std::string letter_key = letter_to_key(letter);
-  std::shared_ptr<State> state = dict_->root->get_next_state(letter_key);
+  std::shared_ptr<State> state = dict_->root->get_next_state(static_cast<int>(letter));
   if (!state) {
     // Should not happen for any letter present in the dictionary
     return false;
@@ -395,7 +394,7 @@ bool Board::letter_makes_word_horizontally(int row, int col, Letter letter) cons
         // Don't advance; `idx` is the leftmost letter — check it last
         break;
       }
-      auto next = state->get_next_state(letter_to_key(board[row][idx]));
+      auto next = state->get_next_state(static_cast<int>(board[row][idx]));
       if (!next) return false;
       state = next;
     }
@@ -404,7 +403,7 @@ bool Board::letter_makes_word_horizontally(int row, int col, Letter letter) cons
 
   if (has_left && has_right) {
     // Process the leftmost letter before crossing the delimiter
-    auto next = state->get_next_state(letter_to_key(board[row][idx]));
+    auto next = state->get_next_state(static_cast<int>(board[row][idx]));
     if (!next) return false;
     state = next;
   }
@@ -412,7 +411,7 @@ bool Board::letter_makes_word_horizontally(int row, int col, Letter letter) cons
   if (!state) return false;
 
   if (has_right) {
-    auto next = state->get_next_state(DELIMITER);
+    auto next = state->get_next_state(DELIMITER_ARC_INDEX);
     if (!next) return false;
     state = next;
 
@@ -421,7 +420,7 @@ bool Board::letter_makes_word_horizontally(int row, int col, Letter letter) cons
         // Don't advance; `idx` is the rightmost letter — check it last
         break;
       }
-      auto next2 = state->get_next_state(letter_to_key(board[row][idx]));
+      auto next2 = state->get_next_state(static_cast<int>(board[row][idx]));
       if (!next2) return false;
       state = next2;
     }
@@ -429,8 +428,7 @@ bool Board::letter_makes_word_horizontally(int row, int col, Letter letter) cons
 
   if (!has_left && !has_right) return false;
 
-  char last_char = letter_to_char(board[row][idx]);
-  return state && state->letters_that_make_a_word.count(last_char) > 0;
+  return state && state->letters_that_make_a_word[static_cast<int>(board[row][idx])];
 }
 
 // ─── letter_makes_word_vertically ────────────────────────────────────────────
@@ -441,8 +439,7 @@ bool Board::letter_makes_word_vertically(int row, int col, Letter letter) const 
   bool has_up = (row > 0) && (board[row - 1][col] != Letter::BLANK);
   bool has_down = (row < BOARD_ROWS - 1) && (board[row + 1][col] != Letter::BLANK);
 
-  std::string letter_key = letter_to_key(letter);
-  std::shared_ptr<State> state = dict_->root->get_next_state(letter_key);
+  std::shared_ptr<State> state = dict_->root->get_next_state(static_cast<int>(letter));
   if (!state) return false;
 
   int idx = row;
@@ -452,7 +449,7 @@ bool Board::letter_makes_word_vertically(int row, int col, Letter letter) const 
       if (idx == 0 || board[idx - 1][col] == Letter::BLANK) {
         break;
       }
-      auto next = state->get_next_state(letter_to_key(board[idx][col]));
+      auto next = state->get_next_state(static_cast<int>(board[idx][col]));
       if (!next) return false;
       state = next;
     }
@@ -460,7 +457,7 @@ bool Board::letter_makes_word_vertically(int row, int col, Letter letter) const 
   }
 
   if (has_up && has_down) {
-    auto next = state->get_next_state(letter_to_key(board[idx][col]));
+    auto next = state->get_next_state(static_cast<int>(board[idx][col]));
     if (!next) return false;
     state = next;
   }
@@ -468,7 +465,7 @@ bool Board::letter_makes_word_vertically(int row, int col, Letter letter) const 
   if (!state) return false;
 
   if (has_down) {
-    auto next = state->get_next_state(DELIMITER);
+    auto next = state->get_next_state(DELIMITER_ARC_INDEX);
     if (!next) return false;
     state = next;
 
@@ -476,7 +473,7 @@ bool Board::letter_makes_word_vertically(int row, int col, Letter letter) const 
       if (idx == BOARD_ROWS - 1 || board[idx + 1][col] == Letter::BLANK) {
         break;
       }
-      auto next2 = state->get_next_state(letter_to_key(board[idx][col]));
+      auto next2 = state->get_next_state(static_cast<int>(board[idx][col]));
       if (!next2) return false;
       state = next2;
     }
@@ -484,8 +481,7 @@ bool Board::letter_makes_word_vertically(int row, int col, Letter letter) const 
 
   if (!has_up && !has_down) return false;
 
-  char last_char = letter_to_char(board[idx][col]);
-  return state && state->letters_that_make_a_word.count(last_char) > 0;
+  return state && state->letters_that_make_a_word[static_cast<int>(board[idx][col])];
 }
 
 // ─── update_anchor_points ────────────────────────────────────────────────────
@@ -542,19 +538,18 @@ bool Board::is_word_valid(const std::vector<Letter>& word) const {
   int n = static_cast<int>(word.size());
   if (n < 2) return false;
 
-  auto state = dict_->root->get_next_state(letter_to_key(word[0]));
+  auto state = dict_->root->get_next_state(static_cast<int>(word[0]));
   if (!state) return false;
 
-  state = state->get_next_state(DELIMITER);
+  state = state->get_next_state(DELIMITER_ARC_INDEX);
   if (!state) return false;
 
   for (int i = 1; i <= n - 2; i++) {
-    state = state->get_next_state(letter_to_key(word[i]));
+    state = state->get_next_state(static_cast<int>(word[i]));
     if (!state) return false;
   }
 
-  char last = letter_to_char(word[n - 1]);
-  return state->letters_that_make_a_word.count(last) > 0;
+  return state->letters_that_make_a_word[static_cast<int>(word[n - 1])];
 }
 
 // ─── validate_board
