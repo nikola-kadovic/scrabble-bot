@@ -1,3 +1,4 @@
+#include <omp.h>
 #include <unordered_set>
 #include <vector>
 
@@ -301,13 +302,25 @@ void Board::generate_for_anchor(int r, int c, bool vertical, const std::vector<L
 }
 
 std::vector<Move> Board::get_all_valid_moves(const std::vector<Letter>& rack) const {
-  std::vector<Move> results;
+  std::vector<std::tuple<int, int, bool>> work;
   for (int r = 0; r < BOARD_ROWS; r++)
     for (int c = 0; c < BOARD_COLS; c++)
       if (anchor_points[r][c]) {
-        generate_for_anchor(r, c, false, rack, results);
-        generate_for_anchor(r, c, true, rack, results);
+        work.emplace_back(r, c, false);
+        work.emplace_back(r, c, true);
       }
+
+  std::vector<std::vector<Move>> slots(work.size());
+
+#pragma omp parallel for schedule(dynamic)
+  for (int i = 0; i < (int)work.size(); i++) {
+    auto [r, c, vertical] = work[i];
+    generate_for_anchor(r, c, vertical, rack, slots[i]);
+  }
+
+  std::vector<Move> results;
+  for (auto& slot : slots)
+    results.insert(results.end(), slot.begin(), slot.end());
   return results;
 }
 

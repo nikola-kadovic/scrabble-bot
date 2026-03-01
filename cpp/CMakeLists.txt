@@ -8,6 +8,15 @@ add_library(scrabble_core STATIC
 target_include_directories(scrabble_core PUBLIC include)
 target_compile_features(scrabble_core PUBLIC cxx_std_20)
 
+if(APPLE)
+    list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew/opt/libomp")
+endif()
+
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(scrabble_core PUBLIC OpenMP::OpenMP_CXX)
+endif()
+
 # On Windows with MSVC, add /utf-8 flag so the ◇ delimiter literal is handled correctly
 if (MSVC)
     target_compile_options(scrabble_core PUBLIC /utf-8)
