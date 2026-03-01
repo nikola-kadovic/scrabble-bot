@@ -49,35 +49,52 @@ TEST_CASE("State initializes empty", "[gaddag][state]") {
   CHECK(ltmaw_size(s) == 0);
 }
 
-TEST_CASE("State::add_arc creates arc and returns destination", "[gaddag][state]") {
-  State s;
-  auto dest = s.add_arc("A");
-  CHECK(s.arcs[static_cast<int>(Letter::A)] != nullptr);
-  CHECK(dest != nullptr);
-  CHECK(s.arcs[static_cast<int>(Letter::A)] == dest);
+TEST_CASE("GADDAG arc to traversal state is non-null", "[gaddag][state]") {
+  // After build_from_words({"AB"}), root has arcs for both 'A' (step 2) and
+  // 'B' (step 1). Verify at least the 'A' arc was created.
+  Gaddag g;
+  g.build_from_words({"AB"});
+  CHECK(g.root->arcs[static_cast<int>(Letter::A)] != nullptr);
+  CHECK(g.root->get_next_state(static_cast<int>(Letter::A)) != nullptr);
 }
 
-TEST_CASE("State::add_arc is idempotent (returns same destination)", "[gaddag][state]") {
-  State s;
-  auto d1 = s.add_arc("B");
-  auto d2 = s.add_arc("B");
-  CHECK(d1 == d2);
-  CHECK(arcs_size(s) == 1);
+TEST_CASE("GADDAG arc creation is idempotent", "[gaddag][state]") {
+  // Both "AB" and "AC" traverse root->A in step 2; ensure_arc is called
+  // twice for 'A' but the pointer must be the same state.
+  Gaddag g;
+  g.build_from_words({"AB", "AC"});
+  const State* s_A = g.root->get_next_state(static_cast<int>(Letter::A));
+  REQUIRE(s_A != nullptr);
+  CHECK(g.root->arcs[static_cast<int>(Letter::A)] == s_A);  // stable pointer
 }
 
-TEST_CASE("State::add_arc with provided destination shares state", "[gaddag][state]") {
-  State s;
-  auto shared = std::make_shared<State>();
-  auto result = s.add_arc("C", shared);
-  CHECK(result == shared);
-  CHECK(s.arcs[static_cast<int>(Letter::C)] == shared);
+TEST_CASE("GADDAG minimization reuses delimiter state across words", "[gaddag][state]") {
+  // "ABCD" and "ABCE" share the path root->C->B->A->DELIM.
+  // That DELIM state should have both 'D' and 'E' in letters_that_make_a_word.
+  Gaddag g;
+  g.build_from_words({"ABCD", "ABCE"});
+  const State* s_C = g.root->get_next_state(static_cast<int>(Letter::C));
+  REQUIRE(s_C != nullptr);
+  const State* s_CB = s_C->get_next_state(static_cast<int>(Letter::B));
+  REQUIRE(s_CB != nullptr);
+  const State* s_CBA = s_CB->get_next_state(static_cast<int>(Letter::A));
+  REQUIRE(s_CBA != nullptr);
+  const State* s_delim = s_CBA->get_next_state(DELIMITER_ARC_INDEX);
+  REQUIRE(s_delim != nullptr);
+  // Both 'D' and 'E' must appear in the same (shared) delimiter state.
+  CHECK(ltmaw_has(*s_delim, 'D'));
+  CHECK(ltmaw_has(*s_delim, 'E'));
 }
 
-TEST_CASE("State::add_ending_arc records ending letter", "[gaddag][state]") {
-  State s;
-  auto dest = s.add_ending_arc("D", 'E');
-  CHECK(dest != nullptr);
-  CHECK(ltmaw_has(*dest, 'E'));
+TEST_CASE("GADDAG ending letter recorded in LTMAW", "[gaddag][state]") {
+  // For word "DE" (n=2), step 2 produces root->D->DELIM with 'E' in LTMAW.
+  Gaddag g;
+  g.build_from_words({"DE"});
+  const State* s_D = g.root->get_next_state(static_cast<int>(Letter::D));
+  REQUIRE(s_D != nullptr);
+  const State* s_delim = s_D->get_next_state(DELIMITER_ARC_INDEX);
+  REQUIRE(s_delim != nullptr);
+  CHECK(ltmaw_has(*s_delim, 'E'));
 }
 
 TEST_CASE("State::add_ending_letter inserts to set", "[gaddag][state]") {
@@ -96,9 +113,13 @@ TEST_CASE("State::get_next_state returns nullptr for missing arc", "[gaddag][sta
 }
 
 TEST_CASE("State::get_next_state returns correct destination", "[gaddag][state]") {
-  State s;
-  auto dest = s.add_arc("A");
-  CHECK(s.get_next_state("A") == dest);
+  // Both overloads (string and int) must return the same raw pointer.
+  Gaddag g;
+  g.build_from_words({"AB"});
+  const State* via_str = g.root->get_next_state("A");
+  const State* via_int = g.root->get_next_state(static_cast<int>(Letter::A));
+  REQUIRE(via_str != nullptr);
+  CHECK(via_str == via_int);
 }
 
 TEST_CASE("Gaddag builds from words list", "[gaddag]") {

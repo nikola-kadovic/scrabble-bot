@@ -114,13 +114,13 @@ class Board {
                    bool vertical, std::vector<Move>& results) const;
 
   // Extend the word to the right from position (r,c).
-  void extend_right(int r, int c, bool vertical, const std::shared_ptr<State>& state,
+  void extend_right(int r, int c, bool vertical, const State* state,
                     const std::vector<Letter>& rack, std::vector<TileEntry>& left_part,
                     std::vector<TileEntry>& right_part, int anchor_r, int anchor_c,
                     std::vector<Move>& results) const;
 
   // Extend the word to the left from position (r,c).
-  void extend_left(int r, int c, bool vertical, const std::shared_ptr<State>& state,
+  void extend_left(int r, int c, bool vertical, const State* state,
                    const std::vector<Letter>& rack, int limit, std::vector<TileEntry>& left_part,
                    int anchor_r, int anchor_c, std::vector<Move>& results) const;
 

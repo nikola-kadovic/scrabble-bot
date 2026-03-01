@@ -380,7 +380,7 @@ bool Board::letter_makes_word_horizontally(int row, int col, Letter letter) cons
   bool has_right = (col < BOARD_COLS - 1) && (board[row][col + 1] != Letter::BLANK);
 
   // Start traversal from root using the placed letter
-  std::shared_ptr<State> state = dict_->root->get_next_state(static_cast<int>(letter));
+  const State* state = dict_->root->get_next_state(static_cast<int>(letter));
   if (!state) {
     // Should not happen for any letter present in the dictionary
     return false;
@@ -439,7 +439,7 @@ bool Board::letter_makes_word_vertically(int row, int col, Letter letter) const 
   bool has_up = (row > 0) && (board[row - 1][col] != Letter::BLANK);
   bool has_down = (row < BOARD_ROWS - 1) && (board[row + 1][col] != Letter::BLANK);
 
-  std::shared_ptr<State> state = dict_->root->get_next_state(static_cast<int>(letter));
+  const State* state = dict_->root->get_next_state(static_cast<int>(letter));
   if (!state) return false;
 
   int idx = row;
@@ -538,7 +538,7 @@ bool Board::is_word_valid(const std::vector<Letter>& word) const {
   int n = static_cast<int>(word.size());
   if (n < 2) return false;
 
-  auto state = dict_->root->get_next_state(static_cast<int>(word[0]));
+  const State* state = dict_->root->get_next_state(static_cast<int>(word[0]));
   if (!state) return false;
 
   state = state->get_next_state(DELIMITER_ARC_INDEX);

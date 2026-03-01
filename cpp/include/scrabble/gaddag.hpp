@@ -25,38 +25,34 @@ struct Arc {
   std::shared_ptr<State> destination_state;
 
   Arc();
-  explicit Arc(std::shared_ptr<State> dest);
+  // Non-owning: wraps a raw pointer from the arena with a no-op deleter.
+  explicit Arc(State* dest);
 };
 
 class State {
  public:
-  std::array<std::shared_ptr<State>, 28> arcs{};
+  // Raw (non-owning) pointers — owned by Gaddag::states_ arena.
+  std::array<State*, 28> arcs{};
   std::array<bool, 27> letters_that_make_a_word{};
+  // Keeps Python-created child states alive when add_arc is called from
+  // Python bindings on a standalone State (not arena-managed).
+  std::vector<std::shared_ptr<State>> python_children;
 
   State() = default;
-
-  // Add an arc for `letter`. If arc doesn't exist, creates it pointing to
-  // `dest` (or a new State if dest is null). Always returns the arc's
-  // destination state.
-  std::shared_ptr<State> add_arc(const std::string& letter, std::shared_ptr<State> dest = nullptr);
-
-  // Add an arc for `letter` and record `ending_letter` in the destination's
-  // letters_that_make_a_word set. Returns the destination state.
-  std::shared_ptr<State> add_ending_arc(const std::string& letter, char ending_letter);
 
   void add_ending_letter(char letter);
 
   // Returns the next state for `letter` string key, or nullptr if no such arc exists.
-  std::shared_ptr<State> get_next_state(const std::string& letter) const;
+  const State* get_next_state(const std::string& letter) const;
 
   // Returns the next state for arc index (0-25=A-Z, 26=BLANK, 27=DELIMITER),
   // or nullptr if no such arc exists. Faster than the string overload.
-  std::shared_ptr<State> get_next_state(int arc_index) const;
+  const State* get_next_state(int arc_index) const;
 };
 
 class Gaddag {
  public:
-  std::shared_ptr<State> root;
+  State* root = nullptr;
 
   Gaddag();
 
@@ -74,6 +70,17 @@ class Gaddag {
   std::unordered_set<Letter> get_dictionary_letters() const;
 
  private:
+  std::vector<std::unique_ptr<State>> states_;
+
+  State* alloc_state();
+
+  // Get or create the arc at arc_index from s, allocating a new state if needed.
+  State* ensure_arc(State* s, int arc_index);
+
+  // Get or set the arc at arc_index from s to dest; if arc already exists,
+  // leaves it unchanged. Always returns the arc's destination.
+  State* ensure_arc(State* s, int arc_index, State* dest);
+
   std::string cache_path_for(const std::string& wordlist_path) const;
   bool load_cache(const std::string& cache_path);
   void save_cache(const std::string& cache_path) const;

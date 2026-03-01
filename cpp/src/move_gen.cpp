@@ -106,7 +106,7 @@ void Board::record_move(const std::vector<TileEntry>& left_part,
                          std::move(word_letters), std::move(is_blank_vec), score});
 }
 
-void Board::extend_right(int r, int c, bool vertical, const std::shared_ptr<State>& state,
+void Board::extend_right(int r, int c, bool vertical, const State* state,
                          const std::vector<Letter>& rack, std::vector<TileEntry>& left_part,
                          std::vector<TileEntry>& right_part, int anchor_r, int anchor_c,
                          std::vector<Move>& results) const {
@@ -160,7 +160,7 @@ void Board::extend_right(int r, int c, bool vertical, const std::shared_ptr<Stat
   }
 }
 
-void Board::extend_left(int r, int c, bool vertical, const std::shared_ptr<State>& state,
+void Board::extend_left(int r, int c, bool vertical, const State* state,
                         const std::vector<Letter>& rack, int limit,
                         std::vector<TileEntry>& left_part, int anchor_r, int anchor_c,
                         std::vector<Move>& results) const {

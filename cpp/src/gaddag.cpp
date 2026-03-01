@@ -17,7 +17,11 @@ namespace scrabble {
 // ──────────────────────────────────────────────────────────────────────
 
 Arc::Arc() : destination_state(std::make_shared<State>()) {}
-Arc::Arc(std::shared_ptr<State> dest) : destination_state(std::move(dest)) {}
+
+// Non-owning wrap: the State is managed by the Gaddag arena; we use a
+// no-op deleter so the shared_ptr never frees the object.
+Arc::Arc(State* dest)
+    : destination_state(dest ? std::shared_ptr<State>(dest, [](State*) {}) : nullptr) {}
 
 // ─── State
 // ────────────────────────────────────────────────────────────────────
@@ -34,47 +38,51 @@ static int key_to_arc_index(const std::string& key) {
 
 }  // namespace
 
-std::shared_ptr<State> State::add_arc(const std::string& letter, std::shared_ptr<State> dest) {
-  int idx = key_to_arc_index(letter);
-  if (!arcs[idx]) {
-    arcs[idx] = dest ? dest : std::make_shared<State>();
-  }
-  return arcs[idx];
-}
-
-std::shared_ptr<State> State::add_ending_arc(const std::string& letter, char ending_letter) {
-  int idx = key_to_arc_index(letter);
-  if (!arcs[idx]) {
-    arcs[idx] = std::make_shared<State>();
-  }
-  arcs[idx]->add_ending_letter(ending_letter);
-  return arcs[idx];
-}
-
 void State::add_ending_letter(char letter) {
   letters_that_make_a_word[static_cast<unsigned char>(letter - 'A')] = true;
 }
 
-std::shared_ptr<State> State::get_next_state(const std::string& letter) const {
+const State* State::get_next_state(const std::string& letter) const {
   return get_next_state(key_to_arc_index(letter));
 }
 
-std::shared_ptr<State> State::get_next_state(int arc_index) const { return arcs[arc_index]; }
+const State* State::get_next_state(int arc_index) const { return arcs[arc_index]; }
 
 // ─── Gaddag
 // ───────────────────────────────────────────────────────────────────
 
-Gaddag::Gaddag() : root(std::make_shared<State>()) {}
+State* Gaddag::alloc_state() {
+  states_.push_back(std::make_unique<State>());
+  return states_.back().get();
+}
+
+State* Gaddag::ensure_arc(State* s, int arc_index) {
+  if (!s->arcs[arc_index]) {
+    s->arcs[arc_index] = alloc_state();
+  }
+  return s->arcs[arc_index];
+}
+
+State* Gaddag::ensure_arc(State* s, int arc_index, State* dest) {
+  if (!s->arcs[arc_index]) {
+    s->arcs[arc_index] = dest;
+  }
+  return s->arcs[arc_index];
+}
+
+Gaddag::Gaddag() { root = alloc_state(); }
 
 void Gaddag::build_from_words(const std::vector<std::string>& words) {
-  root = std::make_shared<State>();
+  states_.clear();
+  root = alloc_state();
   for (const auto& word : words) {
     add_word(word);
   }
 }
 
 void Gaddag::build_from_file(const std::string& wordlist_path, bool use_cache) {
-  root = std::make_shared<State>();
+  states_.clear();
+  root = nullptr;
 
   if (use_cache) {
     std::string cp = cache_path_for(wordlist_path);
@@ -82,6 +90,8 @@ void Gaddag::build_from_file(const std::string& wordlist_path, bool use_cache) {
       return;
     }
   }
+
+  root = alloc_state();
 
   // Load words from file
   std::ifstream file(wordlist_path);
@@ -118,33 +128,40 @@ void Gaddag::add_word(const std::string& word) {
     throw std::invalid_argument("Words must have at least 2 letters");
   }
 
-  std::shared_ptr<State> current = root;
+  State* current = root;
 
   // Step 1: Add arcs for word[n-1 .. 2], then ending arc word[1] → word[0]
   // range(len(word)-1, 1, -1) == [n-1, n-2, ..., 2]
   for (int i = n - 1; i > 1; i--) {
-    current = current->add_arc(std::string(1, word[i]));
+    current = ensure_arc(current, word[i] - 'A');
   }
-  current->add_ending_arc(std::string(1, word[1]), word[0]);
+  {
+    State* dest = ensure_arc(current, word[1] - 'A');
+    dest->letters_that_make_a_word[word[0] - 'A'] = true;
+  }
 
   // Step 2: Add arcs for word[n-2 .. 0] then ending arc DELIMITER → word[n-1]
   // range(len(word)-2, -1, -1) == [n-2, n-3, ..., 0]
   current = root;
   for (int i = n - 2; i >= 0; i--) {
-    current = current->add_arc(std::string(1, word[i]));
+    current = ensure_arc(current, word[i] - 'A');
   }
-  current = current->add_ending_arc(DELIMITER, word[n - 1]);
+  {
+    State* dest = ensure_arc(current, DELIMITER_ARC_INDEX);
+    dest->letters_that_make_a_word[word[n - 1] - 'A'] = true;
+    current = dest;
+  }
 
   // Step 3: Minimization loop
   // range(len(word)-3, -1, -1) == [n-3, n-4, ..., 0]
   for (int m = n - 3; m >= 0; m--) {
-    std::shared_ptr<State> destination = current;
+    State* destination = current;
     current = root;
     for (int i = m; i >= 0; i--) {
-      current = current->add_arc(std::string(1, word[i]));
+      current = ensure_arc(current, word[i] - 'A');
     }
-    current = current->add_arc(DELIMITER);
-    current->add_arc(std::string(1, word[m + 1]), destination);
+    current = ensure_arc(current, DELIMITER_ARC_INDEX);
+    ensure_arc(current, word[m + 1] - 'A', destination);
   }
 }
 
@@ -181,7 +198,7 @@ void collect_states(State* s, std::unordered_map<State*, uint32_t>& ids,
   ordered.push_back(s);
   for (int i = 0; i < 28; i++) {
     if (s->arcs[i]) {
-      collect_states(s->arcs[i].get(), ids, ordered);
+      collect_states(s->arcs[i], ids, ordered);
     }
   }
 }
@@ -205,7 +222,7 @@ uint8_t read_u8(std::istream& in) {
 void Gaddag::save_cache(const std::string& cache_path) const {
   std::unordered_map<State*, uint32_t> ids;
   std::vector<State*> ordered;
-  collect_states(root.get(), ids, ordered);
+  collect_states(root, ids, ordered);
 
   std::ofstream out(cache_path, std::ios::binary);
   if (!out) {
@@ -218,7 +235,7 @@ void Gaddag::save_cache(const std::string& cache_path) const {
   write_u32(out, 2);  // version 2
 
   // Root ID
-  write_u32(out, ids.at(root.get()));
+  write_u32(out, ids.at(root));
 
   // Number of states
   write_u32(out, static_cast<uint32_t>(ordered.size()));
@@ -241,7 +258,7 @@ void Gaddag::save_cache(const std::string& cache_path) const {
     for (int i = 0; i < 28; i++) {
       if (s->arcs[i]) {
         write_u8(out, static_cast<uint8_t>(i));
-        write_u32(out, ids.at(s->arcs[i].get()));
+        write_u32(out, ids.at(s->arcs[i]));
       }
     }
   }
@@ -267,10 +284,10 @@ bool Gaddag::load_cache(const std::string& cache_path) {
 
   std::cerr << "Loading GADDAG from cache: " << cache_path << "\n";
 
-  // Create all state objects
-  std::vector<std::shared_ptr<State>> states(num_states);
-  for (auto& sp : states) {
-    sp = std::make_shared<State>();
+  // Create all state objects via the arena
+  std::vector<State*> ptrs(num_states);
+  for (uint32_t i = 0; i < num_states; i++) {
+    ptrs[i] = alloc_state();
   }
 
   // Fill in letters_that_make_a_word and arcs
@@ -278,7 +295,7 @@ bool Gaddag::load_cache(const std::string& cache_path) {
     uint32_t bitmask = read_u32(in);
     for (int j = 0; j < 26; j++) {
       if ((bitmask >> j) & 1u) {
-        states[i]->letters_that_make_a_word[j] = true;
+        ptrs[i]->letters_that_make_a_word[j] = true;
       }
     }
     uint8_t num_arcs = read_u8(in);
@@ -287,14 +304,14 @@ bool Gaddag::load_cache(const std::string& cache_path) {
       uint32_t dest_id = read_u32(in);
       if (dest_id >= num_states) return false;
       if (arc_index >= 28) return false;
-      states[i]->arcs[arc_index] = states[dest_id];
+      ptrs[i]->arcs[arc_index] = ptrs[dest_id];
     }
   }
 
   if (!in) return false;
 
   if (root_id >= num_states) return false;
-  root = states[root_id];
+  root = ptrs[root_id];
   return true;
 }
 

@@ -114,8 +114,9 @@ PYBIND11_MODULE(_cpp_ext, m) {
       });
 
   // ── State ──────────────────────────────────────────────────────────────────
-  // Bind with shared_ptr holder so Gaddag.root (a shared_ptr<State>) works
-  // seamlessly.
+  // Bind with shared_ptr holder for Python lifetime management.
+  // C++ traversal uses raw State* in arcs[]; Python_children keeps arena-less
+  // States alive when add_arc is called on a standalone Python State object.
   py::class_<State, std::shared_ptr<State>>(m, "State")
       .def(py::init<>())
       .def_property_readonly("arcs",
@@ -147,22 +148,53 @@ PYBIND11_MODULE(_cpp_ext, m) {
                              })
       .def(
           "add_arc",
-          [](State& self, const std::string& letter, const py::object& dest) {
-            std::shared_ptr<State> dest_ptr = nullptr;
-            if (!dest.is_none()) {
-              dest_ptr = dest.cast<std::shared_ptr<State>>();
+          [](State& self, const std::string& letter, const py::object& dest) -> State* {
+            // Compute arc index from the letter key.
+            int idx;
+            if (letter == DELIMITER) {
+              idx = DELIMITER_ARC_INDEX;
+            } else {
+              char c = letter[0];
+              idx = (c == '_') ? 26 : (c - 'A');
             }
-            return self.add_arc(letter, dest_ptr);
+            if (!self.arcs[idx]) {
+              std::shared_ptr<State> child;
+              if (!dest.is_none()) {
+                child = dest.cast<std::shared_ptr<State>>();
+              } else {
+                child = std::make_shared<State>();
+              }
+              // Keep child alive as long as this State is alive.
+              self.python_children.push_back(child);
+              self.arcs[idx] = child.get();
+            }
+            return self.arcs[idx];
           },
-          py::arg("letter"), py::arg("destination_state") = py::none())
+          py::arg("letter"), py::arg("destination_state") = py::none(),
+          py::return_value_policy::reference)
       .def(
           "add_ending_arc",
-          [](State& self, const std::string& letter, const std::string& ending_letter) {
+          [](State& self, const std::string& letter,
+             const std::string& ending_letter) -> State* {
             if (ending_letter.empty())
               throw std::invalid_argument("ending_letter must not be empty");
-            return self.add_ending_arc(letter, ending_letter[0]);
+            int idx;
+            if (letter == DELIMITER) {
+              idx = DELIMITER_ARC_INDEX;
+            } else {
+              char c = letter[0];
+              idx = (c == '_') ? 26 : (c - 'A');
+            }
+            if (!self.arcs[idx]) {
+              auto child = std::make_shared<State>();
+              self.python_children.push_back(child);
+              self.arcs[idx] = child.get();
+            }
+            self.arcs[idx]->letters_that_make_a_word[ending_letter[0] - 'A'] = true;
+            return self.arcs[idx];
           },
-          py::arg("letter"), py::arg("ending_letter"))
+          py::arg("letter"), py::arg("ending_letter"),
+          py::return_value_policy::reference)
       .def(
           "add_ending_letter",
           [](State& self, const std::string& letter) {
@@ -173,9 +205,9 @@ PYBIND11_MODULE(_cpp_ext, m) {
       .def(
           "get_next_state",
           [](const State& self, const std::string& letter) -> py::object {
-            auto next = self.get_next_state(letter);
+            const State* next = self.get_next_state(letter);
             if (!next) return py::none();
-            return py::cast(next);
+            return py::cast(next, py::return_value_policy::reference);
           },
           py::arg("letter"));
 
@@ -184,7 +216,7 @@ PYBIND11_MODULE(_cpp_ext, m) {
       .def(py::init<>())
       .def(py::init([](const py::object& /*letters_that_make_a_word*/, const py::object& dest) {
              if (dest.is_none()) return Arc{};
-             return Arc(dest.cast<std::shared_ptr<State>>());
+             return Arc(dest.cast<State*>());
            }),
            py::arg("letters_that_make_a_word") = py::none(),
            py::arg("destination_state") = py::none())
