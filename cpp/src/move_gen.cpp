@@ -239,6 +239,12 @@ void Board::generate_for_anchor(int r, int c, bool vertical,
         int pos_r = back_r, pos_c = back_c;
         bool ok = true;
 
+        // Is the square immediately to the right of the anchor empty?
+        // If not, a word ending at the anchor would abut an existing tile and
+        // form a longer (potentially invalid) run.
+        bool right_of_anchor_empty =
+            !in_bounds(r + dr, c + dc) || board[r + dr][c + dc] == Letter::BLANK;
+
         while (in_bounds(pos_r, pos_c) &&
                board[pos_r][pos_c] != Letter::BLANK) {
           Letter tile = board[pos_r][pos_c];
@@ -250,6 +256,7 @@ void Board::generate_for_anchor(int r, int c, bool vertical,
                              board[further_r][further_c] == Letter::BLANK;
 
           if (is_leftmost &&
+              right_of_anchor_empty &&
               state->letters_that_make_a_word.count(letter_to_char(tile)) > 0) {
             // Record a move that ends at this leftmost tile (no right part).
             left_part.push_back({tile, false, false});
