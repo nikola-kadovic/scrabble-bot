@@ -53,7 +53,7 @@ class TestMoveGenValidity:
     def test_first_moves_until_no_more_moves(self, gaddag):
 
         board = Board(gaddag)
-        rack = [Letter.A, Letter.B, Letter.C, Letter.D, Letter.E, Letter.F, Letter.G]
+        rack = [Letter.A, Letter.B, Letter.C, Letter.D, Letter.E, Letter.F, Letter.BLANK]
 
         moves = board.get_all_valid_moves(rack)
 
@@ -61,7 +61,5 @@ class TestMoveGenValidity:
             move = max(moves, key=lambda x: x.score)
             board.place_word(move)
             moves = board.get_all_valid_moves(rack)
-        
-        print(board)
         
         assert board.validate_board() == [], "Board should be valid"
