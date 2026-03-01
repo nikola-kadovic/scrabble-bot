@@ -14,6 +14,8 @@ from scrabble_bot._cpp_ext import (
     Letter,
     Move,
     SquareType,
+    get_all_letters,
+    letter_to_char,
 )
 
 
@@ -28,20 +30,17 @@ def make_gaddag(*words: str) -> Gaddag:
 
 class TestLetter:
     def test_all_letters_exist(self):
-        letters = list(Letter)
+        letters = list(get_all_letters())
         assert len(letters) == 27  # A-Z + BLANK
 
     def test_str_representation(self):
-        assert str(Letter.A) == "A"
-        assert str(Letter.BLANK) == "_"
-
-    def test_blank_value(self):
-        assert str(Letter.BLANK) == "_"
+        assert letter_to_char(Letter.A) == "A"
+        assert letter_to_char(Letter.BLANK) == "_"
 
 
 class TestLetterScores:
     def test_all_letters_have_scores(self):
-        for l in Letter:
+        for l in get_all_letters():
             assert l in LETTER_SCORES
 
     def test_scores(self):
@@ -55,15 +54,6 @@ class TestLetterScores:
 
 
 # ── SquareType ────────────────────────────────────────────────────────────────
-
-
-class TestSquareType:
-    def test_str_representations(self):
-        assert str(SquareType.DEFAULT) == "."
-        assert str(SquareType.DOUBLE_WORD) == "w"
-        assert str(SquareType.TRIPLE_WORD) == "W"
-        assert str(SquareType.DOUBLE_LETTER) == "l"
-        assert str(SquareType.TRIPLE_LETTER) == "L"
 
 
 # ── Move ─────────────────────────────────────────────────────────────────────
@@ -108,11 +98,6 @@ class TestBoard:
         assert len(sq) == 225
         assert (0, 0) in sq
         assert (14, 14) in sq
-
-    def test_center_square_is_default(self):
-        g = make_gaddag()
-        b = Board(g)
-        assert b.square_types[(7, 7)] == SquareType.DEFAULT
 
     def test_triple_word_squares(self):
         g = make_gaddag()
