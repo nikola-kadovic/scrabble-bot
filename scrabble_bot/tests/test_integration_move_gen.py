@@ -49,3 +49,19 @@ class TestMoveGenValidity:
                 f"end=({move.end.row},{move.end.col}) "
                 f"letters={move.letters} is_blank={move.is_blank}"
             )
+    
+    def test_first_moves_until_no_more_moves(self, gaddag):
+
+        board = Board(gaddag)
+        rack = [Letter.A, Letter.B, Letter.C, Letter.D, Letter.E, Letter.F, Letter.G]
+
+        moves = board.get_all_valid_moves(rack)
+
+        while len(moves) > 0:
+            move = max(moves, key=lambda x: x.score)
+            board.place_word(move)
+            moves = board.get_all_valid_moves(rack)
+        
+        print(board)
+        
+        assert board.validate_board() == [], "Board should be valid"

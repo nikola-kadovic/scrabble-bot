@@ -12,6 +12,7 @@ dependencies = [
     "pytest>=9.0.2",
     "autopep8>=2.0.0",
     "ruff>=0.15.1",
+    "numpy>=2.2.6",
 ]
 
 [project.scripts]
