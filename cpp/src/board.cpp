@@ -284,38 +284,30 @@ int Board::place_word_horizontally(const std::vector<Letter> &word, int sp_row,
   for (int i = 0; i < len; i++) {
     int c = sp_col + i;
     // Walk up to first blank above this column tile
-    {
-      int rr = sp_row - 1;
-      while (in_bounds(rr, c) && board[rr][c] != Letter::BLANK)
-        rr--;
-      if (in_bounds(rr, c))
-        update_vertical_cross_checks(rr, c);
-    }
+    int r_up = sp_row - 1;
+    while (in_bounds(r_up, c) && board[r_up][c] != Letter::BLANK)
+      r_up--;
+    if (in_bounds(r_up, c))
+      update_vertical_cross_checks(r_up, c);
     // Walk down to first blank below this column tile
-    {
-      int rr = sp_row + 1;
-      while (in_bounds(rr, c) && board[rr][c] != Letter::BLANK)
-        rr++;
-      if (in_bounds(rr, c))
-        update_vertical_cross_checks(rr, c);
-    }
+    int r_down = sp_row + 1;
+    while (in_bounds(r_down, c) && board[r_down][c] != Letter::BLANK)
+      r_down++;
+    if (in_bounds(r_down, c))
+      update_vertical_cross_checks(r_down, c);
   }
   // Walk left past any pre-existing tiles to the first blank
-  {
-    int c = sp_col - 1;
-    while (in_bounds(sp_row, c) && board[sp_row][c] != Letter::BLANK)
-      c--;
-    if (in_bounds(sp_row, c))
-      update_horizontal_cross_checks(sp_row, c);
-  }
+  int c_left = sp_col - 1;
+  while (in_bounds(sp_row, c_left) && board[sp_row][c_left] != Letter::BLANK)
+    c_left--;
+  if (in_bounds(sp_row, c_left))
+    update_horizontal_cross_checks(sp_row, c_left);
   // Walk right past the word (and any pre-existing tiles) to the first blank
-  {
-    int c = sp_col + len;
-    while (in_bounds(sp_row, c) && board[sp_row][c] != Letter::BLANK)
-      c++;
-    if (in_bounds(sp_row, c))
-      update_horizontal_cross_checks(sp_row, c);
-  }
+  int c_right = sp_col + len;
+  while (in_bounds(sp_row, c_right) && board[sp_row][c_right] != Letter::BLANK)
+    c_right++;
+  if (in_bounds(sp_row, c_right))
+    update_horizontal_cross_checks(sp_row, c_right);
 
   update_anchor_points(sp_row, sp_col, sp_row, sp_col + len - 1);
 
@@ -362,38 +354,30 @@ int Board::place_word_vertically(const std::vector<Letter> &word, int sp_row,
   for (int i = 0; i < len; i++) {
     int r = sp_row + i;
     // Walk left to first blank left of this row tile
-    {
-      int cc = sp_col - 1;
-      while (in_bounds(r, cc) && board[r][cc] != Letter::BLANK)
-        cc--;
-      if (in_bounds(r, cc))
-        update_horizontal_cross_checks(r, cc);
-    }
+    int c_left = sp_col - 1;
+    while (in_bounds(r, c_left) && board[r][c_left] != Letter::BLANK)
+      c_left--;
+    if (in_bounds(r, c_left))
+      update_horizontal_cross_checks(r, c_left);
     // Walk right to first blank right of this row tile
-    {
-      int cc = sp_col + 1;
-      while (in_bounds(r, cc) && board[r][cc] != Letter::BLANK)
-        cc++;
-      if (in_bounds(r, cc))
-        update_horizontal_cross_checks(r, cc);
-    }
+    int c_right = sp_col + 1;
+    while (in_bounds(r, c_right) && board[r][c_right] != Letter::BLANK)
+      c_right++;
+    if (in_bounds(r, c_right))
+      update_horizontal_cross_checks(r, c_right);
   }
   // Walk up past any pre-existing tiles to the first blank
-  {
-    int r = sp_row - 1;
-    while (in_bounds(r, sp_col) && board[r][sp_col] != Letter::BLANK)
-      r--;
-    if (in_bounds(r, sp_col))
-      update_vertical_cross_checks(r, sp_col);
-  }
+  int r_up = sp_row - 1;
+  while (in_bounds(r_up, sp_col) && board[r_up][sp_col] != Letter::BLANK)
+    r_up--;
+  if (in_bounds(r_up, sp_col))
+    update_vertical_cross_checks(r_up, sp_col);
   // Walk down past the word (and any pre-existing tiles) to the first blank
-  {
-    int r = sp_row + len;
-    while (in_bounds(r, sp_col) && board[r][sp_col] != Letter::BLANK)
-      r++;
-    if (in_bounds(r, sp_col))
-      update_vertical_cross_checks(r, sp_col);
-  }
+  int r_down = sp_row + len;
+  while (in_bounds(r_down, sp_col) && board[r_down][sp_col] != Letter::BLANK)
+    r_down++;
+  if (in_bounds(r_down, sp_col))
+    update_vertical_cross_checks(r_down, sp_col);
 
   update_anchor_points(sp_row, sp_col, sp_row + len - 1, sp_col);
 
