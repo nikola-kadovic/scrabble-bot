@@ -6,10 +6,9 @@
 
 namespace scrabble {
 
-Board::Board(std::shared_ptr<Gaddag> dictionary)
-    : dict_(std::move(dictionary)), first_move_(true) {
+Board::Board(std::shared_ptr<Gaddag> dictionary) : dict_(std::move(dictionary)) {
   // Initialize board with BLANK
-  for (auto &row : board) {
+  for (auto& row : board) {
     row.fill(Letter::BLANK);
   }
 
@@ -17,8 +16,7 @@ Board::Board(std::shared_ptr<Gaddag> dictionary)
 
   // Initialize all cross-check sets with all letters that appear in the GADDAG
   CrossCheckSet dict_mask = CROSS_CHECK_NONE;
-  for (Letter l : dict_->get_dictionary_letters())
-    dict_mask = cross_check_add(dict_mask, l);
+  for (Letter l : dict_->get_dictionary_letters()) dict_mask = cross_check_add(dict_mask, l);
   for (int r = 0; r < BOARD_ROWS; r++) {
     for (int c = 0; c < BOARD_COLS; c++) {
       horizontal_cross_checks[r][c] = dict_mask;
@@ -57,8 +55,7 @@ void Board::build_square_types() {
     square_types[i][i] = SquareType::DOUBLE_WORD;
     square_types[i][BOARD_COLS - i - 1] = SquareType::DOUBLE_WORD;
     square_types[BOARD_ROWS - i - 1][i] = SquareType::DOUBLE_WORD;
-    square_types[BOARD_ROWS - i - 1][BOARD_COLS - i - 1] =
-        SquareType::DOUBLE_WORD;
+    square_types[BOARD_ROWS - i - 1][BOARD_COLS - i - 1] = SquareType::DOUBLE_WORD;
   }
 
   // Triple word squares (every 7 squares from 0)
@@ -109,7 +106,7 @@ void Board::build_square_types() {
 // ─── place_word (public)
 // ───────────────────────────────────────────────────────
 
-int Board::place_word(const std::vector<Letter> &word, Point start, Point end) {
+int Board::place_word(const std::vector<Letter>& word, Point start, Point end) {
   if (!in_bounds(start.row, start.col))
     throw std::invalid_argument("Starting point is out of bounds");
 
@@ -125,15 +122,13 @@ int Board::place_word(const std::vector<Letter> &word, Point start, Point end) {
   return score;
 }
 
-int Board::place_word(const Move &move) {
-  return place_word(move.letters, move.start, move.end);
-}
+int Board::place_word(const Move& move) { return place_word(move.letters, move.start, move.end); }
 
 // ─── calculate_score
 // ─────────────────────────────────────────────────────────
 
-int Board::calculate_score(const std::vector<Letter> &word, int sp_row,
-                           int sp_col, bool vertical) const {
+int Board::calculate_score(const std::vector<Letter>& word, int sp_row, int sp_col,
+                           bool vertical) const {
   int len = static_cast<int>(word.size());
   int word_score = 0;
   int additional_words_score = 0;
@@ -149,110 +144,102 @@ int Board::calculate_score(const std::vector<Letter> &word, int sp_row,
     int r = sp_row + i * row_step;
     int c = sp_col + i * col_step;
 
-    if (board[r][c] != Letter::BLANK)
-      continue; // pre-existing tile, no bonus
+    if (board[r][c] != Letter::BLANK) continue;  // pre-existing tile, no bonus
 
     // Main word: apply letter/word bonus for this new tile
     switch (square_types[r][c]) {
-    case SquareType::DOUBLE_LETTER:
-      word_score += get_letter_score(word[i]) * 2;
-      break;
-    case SquareType::TRIPLE_LETTER:
-      word_score += get_letter_score(word[i]) * 3;
-      break;
-    case SquareType::DOUBLE_WORD:
-      word_score += get_letter_score(word[i]);
-      word_multiplier *= 2;
-      break;
-    case SquareType::TRIPLE_WORD:
-      word_score += get_letter_score(word[i]);
-      word_multiplier *= 3;
-      break;
-    case SquareType::DEFAULT:
-      word_score += get_letter_score(word[i]);
-      break;
-    default:
-      throw std::runtime_error("square type unrecognized");
-    }
-
-    // Cross word in negative direction (above / left)
-    if (in_bounds(r + cdr1, c + cdc1) &&
-        board[r + cdr1][c + cdc1] != Letter::BLANK) {
-      int aws = 0;
-      for (int y = r + cdr1, x = c + cdc1;
-           in_bounds(y, x) && board[y][x] != Letter::BLANK;
-           y += cdr1, x += cdc1)
-        aws += get_letter_score(board[y][x]);
-      switch (square_types[r][c]) {
       case SquareType::DOUBLE_LETTER:
-        aws += get_letter_score(word[i]) * 2;
+        word_score += get_letter_score(word[i]) * 2;
         break;
       case SquareType::TRIPLE_LETTER:
-        aws += get_letter_score(word[i]) * 3;
+        word_score += get_letter_score(word[i]) * 3;
         break;
       case SquareType::DOUBLE_WORD:
-        aws += get_letter_score(word[i]);
-        aws *= 2;
+        word_score += get_letter_score(word[i]);
+        word_multiplier *= 2;
         break;
       case SquareType::TRIPLE_WORD:
-        aws += get_letter_score(word[i]);
-        aws *= 3;
+        word_score += get_letter_score(word[i]);
+        word_multiplier *= 3;
         break;
       case SquareType::DEFAULT:
-        aws += get_letter_score(word[i]);
+        word_score += get_letter_score(word[i]);
         break;
       default:
         throw std::runtime_error("square type unrecognized");
+    }
+
+    // Cross word in negative direction (above / left)
+    if (in_bounds(r + cdr1, c + cdc1) && board[r + cdr1][c + cdc1] != Letter::BLANK) {
+      int aws = 0;
+      for (int y = r + cdr1, x = c + cdc1; in_bounds(y, x) && board[y][x] != Letter::BLANK;
+           y += cdr1, x += cdc1)
+        aws += get_letter_score(board[y][x]);
+      switch (square_types[r][c]) {
+        case SquareType::DOUBLE_LETTER:
+          aws += get_letter_score(word[i]) * 2;
+          break;
+        case SquareType::TRIPLE_LETTER:
+          aws += get_letter_score(word[i]) * 3;
+          break;
+        case SquareType::DOUBLE_WORD:
+          aws += get_letter_score(word[i]);
+          aws *= 2;
+          break;
+        case SquareType::TRIPLE_WORD:
+          aws += get_letter_score(word[i]);
+          aws *= 3;
+          break;
+        case SquareType::DEFAULT:
+          aws += get_letter_score(word[i]);
+          break;
+        default:
+          throw std::runtime_error("square type unrecognized");
       }
       additional_words_score += aws;
     }
 
     // Cross word in positive direction (below / right)
-    if (in_bounds(r + cdr2, c + cdc2) &&
-        board[r + cdr2][c + cdc2] != Letter::BLANK) {
+    if (in_bounds(r + cdr2, c + cdc2) && board[r + cdr2][c + cdc2] != Letter::BLANK) {
       int aws = 0;
-      for (int y = r + cdr2, x = c + cdc2;
-           in_bounds(y, x) && board[y][x] != Letter::BLANK;
+      for (int y = r + cdr2, x = c + cdc2; in_bounds(y, x) && board[y][x] != Letter::BLANK;
            y += cdr2, x += cdc2)
         aws += get_letter_score(board[y][x]);
       switch (square_types[r][c]) {
-      case SquareType::DOUBLE_LETTER:
-        aws += get_letter_score(word[i]) * 2;
-        break;
-      case SquareType::TRIPLE_LETTER:
-        aws += get_letter_score(word[i]) * 3;
-        break;
-      case SquareType::DOUBLE_WORD:
-        aws += get_letter_score(word[i]);
-        aws *= 2;
-        break;
-      case SquareType::TRIPLE_WORD:
-        aws += get_letter_score(word[i]);
-        aws *= 3;
-        break;
-      case SquareType::DEFAULT:
-        aws += get_letter_score(word[i]);
-        break;
-      default:
-        throw std::runtime_error("square type unrecognized");
+        case SquareType::DOUBLE_LETTER:
+          aws += get_letter_score(word[i]) * 2;
+          break;
+        case SquareType::TRIPLE_LETTER:
+          aws += get_letter_score(word[i]) * 3;
+          break;
+        case SquareType::DOUBLE_WORD:
+          aws += get_letter_score(word[i]);
+          aws *= 2;
+          break;
+        case SquareType::TRIPLE_WORD:
+          aws += get_letter_score(word[i]);
+          aws *= 3;
+          break;
+        case SquareType::DEFAULT:
+          aws += get_letter_score(word[i]);
+          break;
+        default:
+          throw std::runtime_error("square type unrecognized");
       }
       additional_words_score += aws;
     }
   }
 
-  return (word_multiplier * word_score) + additional_words_score +
-         (len == 7 ? 50 : 0);
+  return (word_multiplier * word_score) + additional_words_score + (len == 7 ? 50 : 0);
 }
 
 // ─── place_word_horizontally
 // ──────────────────────────────────────────────────
 
-int Board::place_word_horizontally(const std::vector<Letter> &word, int sp_row,
-                                   int sp_col) {
+int Board::place_word_horizontally(const std::vector<Letter>& word, int sp_row, int sp_col) {
   int len = static_cast<int>(word.size());
   if (sp_col + len > BOARD_COLS) {
-    throw std::invalid_argument(
-        "Word too long to fit horizontally at given position");
+    throw std::invalid_argument("Word too long to fit horizontally at given position");
   }
 
   if (first_move_) {
@@ -261,8 +248,7 @@ int Board::place_word_horizontally(const std::vector<Letter> &word, int sp_row,
     // behaviour exactly.
     bool ok = (sp_row == 7) && (sp_col <= 7) && (7 <= sp_col + len);
     if (!ok) {
-      throw std::invalid_argument(
-          "First move must be on row 7 and cover the center column 7");
+      throw std::invalid_argument("First move must be on row 7 and cover the center column 7");
     }
   }
 
@@ -271,45 +257,35 @@ int Board::place_word_horizontally(const std::vector<Letter> &word, int sp_row,
     int r = sp_row;
     int c = sp_col + i;
     if (board[r][c] != Letter::BLANK && board[r][c] != word[i]) {
-      throw std::invalid_argument(
-          "Square already occupied by a different letter");
+      throw std::invalid_argument("Square already occupied by a different letter");
     }
   }
 
   int final_score = calculate_score(word, sp_row, sp_col, /*vertical=*/false);
 
   // Place letters
-  for (int i = 0; i < len; i++)
-    board[sp_row][sp_col + i] = word[i];
+  for (int i = 0; i < len; i++) board[sp_row][sp_col + i] = word[i];
 
   // Update cross-checks (board already has new letters placed)
   for (int i = 0; i < len; i++) {
     int c = sp_col + i;
     // Walk up to first blank above this column tile
     int r_up = sp_row - 1;
-    while (in_bounds(r_up, c) && board[r_up][c] != Letter::BLANK)
-      r_up--;
-    if (in_bounds(r_up, c))
-      update_vertical_cross_checks(r_up, c);
+    while (in_bounds(r_up, c) && board[r_up][c] != Letter::BLANK) r_up--;
+    if (in_bounds(r_up, c)) update_vertical_cross_checks(r_up, c);
     // Walk down to first blank below this column tile
     int r_down = sp_row + 1;
-    while (in_bounds(r_down, c) && board[r_down][c] != Letter::BLANK)
-      r_down++;
-    if (in_bounds(r_down, c))
-      update_vertical_cross_checks(r_down, c);
+    while (in_bounds(r_down, c) && board[r_down][c] != Letter::BLANK) r_down++;
+    if (in_bounds(r_down, c)) update_vertical_cross_checks(r_down, c);
   }
   // Walk left past any pre-existing tiles to the first blank
   int c_left = sp_col - 1;
-  while (in_bounds(sp_row, c_left) && board[sp_row][c_left] != Letter::BLANK)
-    c_left--;
-  if (in_bounds(sp_row, c_left))
-    update_horizontal_cross_checks(sp_row, c_left);
+  while (in_bounds(sp_row, c_left) && board[sp_row][c_left] != Letter::BLANK) c_left--;
+  if (in_bounds(sp_row, c_left)) update_horizontal_cross_checks(sp_row, c_left);
   // Walk right past the word (and any pre-existing tiles) to the first blank
   int c_right = sp_col + len;
-  while (in_bounds(sp_row, c_right) && board[sp_row][c_right] != Letter::BLANK)
-    c_right++;
-  if (in_bounds(sp_row, c_right))
-    update_horizontal_cross_checks(sp_row, c_right);
+  while (in_bounds(sp_row, c_right) && board[sp_row][c_right] != Letter::BLANK) c_right++;
+  if (in_bounds(sp_row, c_right)) update_horizontal_cross_checks(sp_row, c_right);
 
   update_anchor_points(sp_row, sp_col, sp_row, sp_col + len - 1);
 
@@ -319,20 +295,17 @@ int Board::place_word_horizontally(const std::vector<Letter> &word, int sp_row,
 // ─── place_word_vertically
 // ────────────────────────────────────────────────────
 
-int Board::place_word_vertically(const std::vector<Letter> &word, int sp_row,
-                                 int sp_col) {
+int Board::place_word_vertically(const std::vector<Letter>& word, int sp_row, int sp_col) {
   int len = static_cast<int>(word.size());
   if (sp_row + len > BOARD_ROWS) {
-    throw std::invalid_argument(
-        "Word too long to fit vertically at given position");
+    throw std::invalid_argument("Word too long to fit vertically at given position");
   }
 
   if (first_move_) {
     // Mirrors Python: sp[1] != 7 or not (sp[0] <= 7 <= sp[0] + len(word))
     bool ok = (sp_col == 7) && (sp_row <= 7) && (7 <= sp_row + len);
     if (!ok) {
-      throw std::invalid_argument(
-          "First move must be on column 7 and cover the center row 7");
+      throw std::invalid_argument("First move must be on column 7 and cover the center row 7");
     }
   }
 
@@ -341,45 +314,35 @@ int Board::place_word_vertically(const std::vector<Letter> &word, int sp_row,
     int r = sp_row + i;
     int c = sp_col;
     if (board[r][c] != Letter::BLANK && board[r][c] != word[i]) {
-      throw std::invalid_argument(
-          "Square already occupied by a different letter");
+      throw std::invalid_argument("Square already occupied by a different letter");
     }
   }
 
   int final_score = calculate_score(word, sp_row, sp_col, /*vertical=*/true);
 
   // Place letters
-  for (int i = 0; i < len; i++)
-    board[sp_row + i][sp_col] = word[i];
+  for (int i = 0; i < len; i++) board[sp_row + i][sp_col] = word[i];
 
   // Update cross-checks (board already has new letters placed)
   for (int i = 0; i < len; i++) {
     int r = sp_row + i;
     // Walk left to first blank left of this row tile
     int c_left = sp_col - 1;
-    while (in_bounds(r, c_left) && board[r][c_left] != Letter::BLANK)
-      c_left--;
-    if (in_bounds(r, c_left))
-      update_horizontal_cross_checks(r, c_left);
+    while (in_bounds(r, c_left) && board[r][c_left] != Letter::BLANK) c_left--;
+    if (in_bounds(r, c_left)) update_horizontal_cross_checks(r, c_left);
     // Walk right to first blank right of this row tile
     int c_right = sp_col + 1;
-    while (in_bounds(r, c_right) && board[r][c_right] != Letter::BLANK)
-      c_right++;
-    if (in_bounds(r, c_right))
-      update_horizontal_cross_checks(r, c_right);
+    while (in_bounds(r, c_right) && board[r][c_right] != Letter::BLANK) c_right++;
+    if (in_bounds(r, c_right)) update_horizontal_cross_checks(r, c_right);
   }
   // Walk up past any pre-existing tiles to the first blank
   int r_up = sp_row - 1;
-  while (in_bounds(r_up, sp_col) && board[r_up][sp_col] != Letter::BLANK)
-    r_up--;
-  if (in_bounds(r_up, sp_col))
-    update_vertical_cross_checks(r_up, sp_col);
+  while (in_bounds(r_up, sp_col) && board[r_up][sp_col] != Letter::BLANK) r_up--;
+  if (in_bounds(r_up, sp_col)) update_vertical_cross_checks(r_up, sp_col);
   // Walk down past the word (and any pre-existing tiles) to the first blank
   int r_down = sp_row + len;
-  while (in_bounds(r_down, sp_col) && board[r_down][sp_col] != Letter::BLANK)
-    r_down++;
-  if (in_bounds(r_down, sp_col))
-    update_vertical_cross_checks(r_down, sp_col);
+  while (in_bounds(r_down, sp_col) && board[r_down][sp_col] != Letter::BLANK) r_down++;
+  if (in_bounds(r_down, sp_col)) update_vertical_cross_checks(r_down, sp_col);
 
   update_anchor_points(sp_row, sp_col, sp_row + len - 1, sp_col);
 
@@ -392,8 +355,7 @@ int Board::place_word_vertically(const std::vector<Letter> &word, int sp_row,
 void Board::update_horizontal_cross_checks(int row, int col) {
   CrossCheckSet mask = CROSS_CHECK_NONE;
   for (Letter letter : dict_->get_dictionary_letters()) {
-    if (letter_makes_word_horizontally(row, col, letter))
-      mask = cross_check_add(mask, letter);
+    if (letter_makes_word_horizontally(row, col, letter)) mask = cross_check_add(mask, letter);
   }
   horizontal_cross_checks[row][col] = mask;
 }
@@ -401,8 +363,7 @@ void Board::update_horizontal_cross_checks(int row, int col) {
 void Board::update_vertical_cross_checks(int row, int col) {
   CrossCheckSet mask = CROSS_CHECK_NONE;
   for (Letter letter : dict_->get_dictionary_letters()) {
-    if (letter_makes_word_vertically(row, col, letter))
-      mask = cross_check_add(mask, letter);
+    if (letter_makes_word_vertically(row, col, letter)) mask = cross_check_add(mask, letter);
   }
   vertical_cross_checks[row][col] = mask;
 }
@@ -414,11 +375,9 @@ void Board::update_vertical_cross_checks(int row, int col) {
 //
 // Mirrors the Python _letter_makes_a_word_horizontally method exactly.
 
-bool Board::letter_makes_word_horizontally(int row, int col,
-                                           Letter letter) const {
+bool Board::letter_makes_word_horizontally(int row, int col, Letter letter) const {
   bool has_left = (col > 0) && (board[row][col - 1] != Letter::BLANK);
-  bool has_right =
-      (col < BOARD_COLS - 1) && (board[row][col + 1] != Letter::BLANK);
+  bool has_right = (col < BOARD_COLS - 1) && (board[row][col + 1] != Letter::BLANK);
 
   // Start traversal from root using the placed letter
   std::string letter_key = letter_to_key(letter);
@@ -428,7 +387,7 @@ bool Board::letter_makes_word_horizontally(int row, int col,
     return false;
   }
 
-  int idx = col; // tracks last position examined (for the final check)
+  int idx = col;  // tracks last position examined (for the final check)
 
   if (has_left) {
     for (idx = col - 1; idx >= 0; idx--) {
@@ -437,29 +396,24 @@ bool Board::letter_makes_word_horizontally(int row, int col,
         break;
       }
       auto next = state->get_next_state(letter_to_key(board[row][idx]));
-      if (!next)
-        return false;
+      if (!next) return false;
       state = next;
     }
-    if (!state)
-      return false;
+    if (!state) return false;
   }
 
   if (has_left && has_right) {
     // Process the leftmost letter before crossing the delimiter
     auto next = state->get_next_state(letter_to_key(board[row][idx]));
-    if (!next)
-      return false;
+    if (!next) return false;
     state = next;
   }
 
-  if (!state)
-    return false;
+  if (!state) return false;
 
   if (has_right) {
     auto next = state->get_next_state(DELIMITER);
-    if (!next)
-      return false;
+    if (!next) return false;
     state = next;
 
     for (idx = col + 1; idx < BOARD_COLS; idx++) {
@@ -468,14 +422,12 @@ bool Board::letter_makes_word_horizontally(int row, int col,
         break;
       }
       auto next2 = state->get_next_state(letter_to_key(board[row][idx]));
-      if (!next2)
-        return false;
+      if (!next2) return false;
       state = next2;
     }
   }
 
-  if (!has_left && !has_right)
-    return false;
+  if (!has_left && !has_right) return false;
 
   char last_char = letter_to_char(board[row][idx]);
   return state && state->letters_that_make_a_word.count(last_char) > 0;
@@ -485,16 +437,13 @@ bool Board::letter_makes_word_horizontally(int row, int col,
 //
 // Symmetric counterpart for the vertical axis.
 
-bool Board::letter_makes_word_vertically(int row, int col,
-                                         Letter letter) const {
+bool Board::letter_makes_word_vertically(int row, int col, Letter letter) const {
   bool has_up = (row > 0) && (board[row - 1][col] != Letter::BLANK);
-  bool has_down =
-      (row < BOARD_ROWS - 1) && (board[row + 1][col] != Letter::BLANK);
+  bool has_down = (row < BOARD_ROWS - 1) && (board[row + 1][col] != Letter::BLANK);
 
   std::string letter_key = letter_to_key(letter);
   std::shared_ptr<State> state = dict_->root->get_next_state(letter_key);
-  if (!state)
-    return false;
+  if (!state) return false;
 
   int idx = row;
 
@@ -504,28 +453,23 @@ bool Board::letter_makes_word_vertically(int row, int col,
         break;
       }
       auto next = state->get_next_state(letter_to_key(board[idx][col]));
-      if (!next)
-        return false;
+      if (!next) return false;
       state = next;
     }
-    if (!state)
-      return false;
+    if (!state) return false;
   }
 
   if (has_up && has_down) {
     auto next = state->get_next_state(letter_to_key(board[idx][col]));
-    if (!next)
-      return false;
+    if (!next) return false;
     state = next;
   }
 
-  if (!state)
-    return false;
+  if (!state) return false;
 
   if (has_down) {
     auto next = state->get_next_state(DELIMITER);
-    if (!next)
-      return false;
+    if (!next) return false;
     state = next;
 
     for (idx = row + 1; idx < BOARD_ROWS; idx++) {
@@ -533,14 +477,12 @@ bool Board::letter_makes_word_vertically(int row, int col,
         break;
       }
       auto next2 = state->get_next_state(letter_to_key(board[idx][col]));
-      if (!next2)
-        return false;
+      if (!next2) return false;
       state = next2;
     }
   }
 
-  if (!has_up && !has_down)
-    return false;
+  if (!has_up && !has_down) return false;
 
   char last_char = letter_to_char(board[idx][col]);
   return state && state->letters_that_make_a_word.count(last_char) > 0;
@@ -596,23 +538,19 @@ void Board::update_anchor_points(int r1, int c1, int r2, int c2) {
 // Traverses the C◇... GADDAG path: root → word[0] → DELIMITER → word[1] →
 // ... → word[n-2], then checks word[n-1] in letters_that_make_a_word.
 
-bool Board::is_word_valid(const std::vector<Letter> &word) const {
+bool Board::is_word_valid(const std::vector<Letter>& word) const {
   int n = static_cast<int>(word.size());
-  if (n < 2)
-    return false;
+  if (n < 2) return false;
 
   auto state = dict_->root->get_next_state(letter_to_key(word[0]));
-  if (!state)
-    return false;
+  if (!state) return false;
 
   state = state->get_next_state(DELIMITER);
-  if (!state)
-    return false;
+  if (!state) return false;
 
   for (int i = 1; i <= n - 2; i++) {
     state = state->get_next_state(letter_to_key(word[i]));
-    if (!state)
-      return false;
+    if (!state) return false;
   }
 
   char last = letter_to_char(word[n - 1]);
@@ -628,14 +566,12 @@ bool Board::is_word_valid(const std::vector<Letter> &word) const {
 std::vector<std::string> Board::validate_board() const {
   std::vector<std::string> invalid_words;
 
-  auto check_run = [&](const std::vector<Letter> &run) {
-    if (run.size() < 2)
-      return;
+  auto check_run = [&](const std::vector<Letter>& run) {
+    if (run.size() < 2) return;
     if (!is_word_valid(run)) {
       std::string s;
       s.reserve(run.size());
-      for (Letter l : run)
-        s += letter_to_char(l);
+      for (Letter l : run) s += letter_to_char(l);
       invalid_words.push_back(std::move(s));
     }
   };
@@ -676,42 +612,42 @@ std::vector<std::string> Board::validate_board() const {
 
 std::string Board::to_string() const {
   // ANSI color codes
-  const std::string RED = "\033[91m";        // Triple word
-  const std::string YELLOW = "\033[93m";     // Double word
-  const std::string LIGHT_BLUE = "\033[96m"; // Double letter
-  const std::string DARK_BLUE = "\033[94m";  // Triple letter
-  const std::string GRAY = "\033[90m";       // Default empty
-  const std::string GREEN = "\033[92m";      // Anchor points
-  const std::string BOLD = "\033[1m";        // Placed letters
+  const std::string RED = "\033[91m";         // Triple word
+  const std::string YELLOW = "\033[93m";      // Double word
+  const std::string LIGHT_BLUE = "\033[96m";  // Double letter
+  const std::string DARK_BLUE = "\033[94m";   // Triple letter
+  const std::string GRAY = "\033[90m";        // Default empty
+  const std::string GREEN = "\033[92m";       // Anchor points
+  const std::string BOLD = "\033[1m";         // Placed letters
   const std::string RESET = "\033[0m";
 
-  auto square_color = [&](SquareType t) -> const std::string & {
+  auto square_color = [&](SquareType t) -> const std::string& {
     switch (t) {
-    case SquareType::TRIPLE_WORD:
-      return RED;
-    case SquareType::DOUBLE_WORD:
-      return YELLOW;
-    case SquareType::DOUBLE_LETTER:
-      return LIGHT_BLUE;
-    case SquareType::TRIPLE_LETTER:
-      return DARK_BLUE;
-    default:
-      return GRAY;
+      case SquareType::TRIPLE_WORD:
+        return RED;
+      case SquareType::DOUBLE_WORD:
+        return YELLOW;
+      case SquareType::DOUBLE_LETTER:
+        return LIGHT_BLUE;
+      case SquareType::TRIPLE_LETTER:
+        return DARK_BLUE;
+      default:
+        return GRAY;
     }
   };
 
   auto square_char = [](SquareType t) -> char {
     switch (t) {
-    case SquareType::TRIPLE_WORD:
-      return 'W';
-    case SquareType::DOUBLE_WORD:
-      return 'w';
-    case SquareType::DOUBLE_LETTER:
-      return 'l';
-    case SquareType::TRIPLE_LETTER:
-      return 'L';
-    default:
-      return '.';
+      case SquareType::TRIPLE_WORD:
+        return 'W';
+      case SquareType::DOUBLE_WORD:
+        return 'w';
+      case SquareType::DOUBLE_LETTER:
+        return 'l';
+      case SquareType::TRIPLE_LETTER:
+        return 'L';
+      default:
+        return '.';
     }
   };
 
@@ -723,8 +659,7 @@ std::string Board::to_string() const {
     char buf[4];
     std::snprintf(buf, sizeof(buf), "%2d", c);
     out << buf;
-    if (c < BOARD_COLS - 1)
-      out << ' ';
+    if (c < BOARD_COLS - 1) out << ' ';
   }
   out << '\n';
 
@@ -745,8 +680,7 @@ std::string Board::to_string() const {
       } else if (anchor_points[r][c]) {
         out << GREEN << '.' << RESET;
       } else {
-        out << square_color(square_types[r][c])
-            << square_char(square_types[r][c]) << RESET;
+        out << square_color(square_types[r][c]) << square_char(square_types[r][c]) << RESET;
       }
       out << ' ';
     }
@@ -761,12 +695,11 @@ std::string Board::to_string() const {
     char buf[4];
     std::snprintf(buf, sizeof(buf), "%2d", c);
     out << buf;
-    if (c < BOARD_COLS - 1)
-      out << ' ';
+    if (c < BOARD_COLS - 1) out << ' ';
   }
   out << '\n';
 
   return out.str();
 }
 
-} // namespace scrabble
+}  // namespace scrabble

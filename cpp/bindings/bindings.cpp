@@ -1,11 +1,11 @@
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+
 #include "scrabble/board.hpp"
 #include "scrabble/gaddag.hpp"
 #include "scrabble/letter.hpp"
 #include "scrabble/move.hpp"
 #include "scrabble/point.hpp"
-
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
 
 namespace py = pybind11;
 using namespace scrabble;
@@ -14,7 +14,7 @@ PYBIND11_MODULE(_cpp_ext, m) {
   m.doc() = "C++ core for scrabble-bot";
 
   // ── Constants ──────────────────────────────────────────────────────────────
-  m.attr("DELIMETER") = DELIMITER; // expose with the Python typo spelling
+  m.attr("DELIMETER") = DELIMITER;  // expose with the Python typo spelling
   m.attr("DELIMITER") = DELIMITER;
   m.attr("BOARD_ROWS") = BOARD_ROWS;
   m.attr("BOARD_COLS") = BOARD_COLS;
@@ -49,10 +49,8 @@ PYBIND11_MODULE(_cpp_ext, m) {
       .value("Z", Letter::Z)
       .value("BLANK", Letter::BLANK)
       .export_values()
-      .def("__str__",
-           [](Letter l) { return std::string(1, letter_to_char(l)); })
-      .def("__repr__",
-           [](Letter l) { return std::string("Letter.") + letter_to_char(l); });
+      .def("__str__", [](Letter l) { return std::string(1, letter_to_char(l)); })
+      .def("__repr__", [](Letter l) { return std::string("Letter.") + letter_to_char(l); });
 
   // LETTER_SCORES dict (Letter → int)
   py::dict letter_scores;
@@ -64,8 +62,7 @@ PYBIND11_MODULE(_cpp_ext, m) {
 
   m.def("get_letter_score", &get_letter_score, py::arg("letter"));
   m.def("get_all_letters", &get_all_letters);
-  m.def("letter_to_char",
-        [](Letter l) { return std::string(1, letter_to_char(l)); });
+  m.def("letter_to_char", [](Letter l) { return std::string(1, letter_to_char(l)); });
   m.def("char_to_letter", &char_to_letter, py::arg("c"));
 
   // ── SquareType enum ────────────────────────────────────────────────────────
@@ -78,18 +75,18 @@ PYBIND11_MODULE(_cpp_ext, m) {
       .export_values()
       .def("__str__", [](SquareType t) -> std::string {
         switch (t) {
-        case SquareType::DEFAULT:
-          return ".";
-        case SquareType::DOUBLE_WORD:
-          return "w";
-        case SquareType::TRIPLE_WORD:
-          return "W";
-        case SquareType::DOUBLE_LETTER:
-          return "l";
-        case SquareType::TRIPLE_LETTER:
-          return "L";
-        default:
-          return "?";
+          case SquareType::DEFAULT:
+            return ".";
+          case SquareType::DOUBLE_WORD:
+            return "w";
+          case SquareType::TRIPLE_WORD:
+            return "W";
+          case SquareType::DOUBLE_LETTER:
+            return "l";
+          case SquareType::TRIPLE_LETTER:
+            return "L";
+          default:
+            return "?";
         }
       });
 
@@ -98,25 +95,21 @@ PYBIND11_MODULE(_cpp_ext, m) {
       .def(py::init<int, int>())
       .def_readwrite("row", &Point::row)
       .def_readwrite("col", &Point::col)
-      .def("__repr__", [](const Point &p) {
-        return "Point(" + std::to_string(p.row) + ", " +
-               std::to_string(p.col) + ")";
+      .def("__repr__", [](const Point& p) {
+        return "Point(" + std::to_string(p.row) + ", " + std::to_string(p.col) + ")";
       });
 
   py::class_<Move>(m, "Move")
-      .def(py::init<Point, Point, std::vector<Letter>, std::vector<bool>, int>(),
-           py::arg("start"), py::arg("end"), py::arg("letters"),
-           py::arg("is_blank"), py::arg("score"))
+      .def(py::init<Point, Point, std::vector<Letter>, std::vector<bool>, int>(), py::arg("start"),
+           py::arg("end"), py::arg("letters"), py::arg("is_blank"), py::arg("score"))
       .def_readwrite("start", &Move::start)
       .def_readwrite("end", &Move::end)
       .def_readwrite("letters", &Move::letters)
       .def_readwrite("is_blank", &Move::is_blank)
       .def_readwrite("score", &Move::score)
-      .def("__repr__", [](const Move &mv) {
-        return "Move(start=(" + std::to_string(mv.start.row) + "," +
-               std::to_string(mv.start.col) + "), end=(" +
-               std::to_string(mv.end.row) + "," +
-               std::to_string(mv.end.col) +
+      .def("__repr__", [](const Move& mv) {
+        return "Move(start=(" + std::to_string(mv.start.row) + "," + std::to_string(mv.start.col) +
+               "), end=(" + std::to_string(mv.end.row) + "," + std::to_string(mv.end.col) +
                "), score=" + std::to_string(mv.score) + ")";
       });
 
@@ -126,11 +119,10 @@ PYBIND11_MODULE(_cpp_ext, m) {
   py::class_<State, std::shared_ptr<State>>(m, "State")
       .def(py::init<>())
       .def_readwrite("arcs", &State::arcs)
-      .def_readwrite("letters_that_make_a_word",
-                     &State::letters_that_make_a_word)
+      .def_readwrite("letters_that_make_a_word", &State::letters_that_make_a_word)
       .def(
           "add_arc",
-          [](State &self, const std::string &letter, py::object dest) {
+          [](State& self, const std::string& letter, const py::object& dest) {
             std::shared_ptr<State> dest_ptr = nullptr;
             if (!dest.is_none()) {
               dest_ptr = dest.cast<std::shared_ptr<State>>();
@@ -140,8 +132,7 @@ PYBIND11_MODULE(_cpp_ext, m) {
           py::arg("letter"), py::arg("destination_state") = py::none())
       .def(
           "add_ending_arc",
-          [](State &self, const std::string &letter,
-             const std::string &ending_letter) {
+          [](State& self, const std::string& letter, const std::string& ending_letter) {
             if (ending_letter.empty())
               throw std::invalid_argument("ending_letter must not be empty");
             return self.add_ending_arc(letter, ending_letter[0]);
@@ -149,18 +140,16 @@ PYBIND11_MODULE(_cpp_ext, m) {
           py::arg("letter"), py::arg("ending_letter"))
       .def(
           "add_ending_letter",
-          [](State &self, const std::string &letter) {
-            if (letter.empty())
-              throw std::invalid_argument("letter must not be empty");
+          [](State& self, const std::string& letter) {
+            if (letter.empty()) throw std::invalid_argument("letter must not be empty");
             self.add_ending_letter(letter[0]);
           },
           py::arg("letter"))
       .def(
           "get_next_state",
-          [](const State &self, const std::string &letter) -> py::object {
+          [](const State& self, const std::string& letter) -> py::object {
             auto next = self.get_next_state(letter);
-            if (!next)
-              return py::none();
+            if (!next) return py::none();
             return py::cast(next);
           },
           py::arg("letter"));
@@ -168,12 +157,10 @@ PYBIND11_MODULE(_cpp_ext, m) {
   // ── Arc ────────────────────────────────────────────────────────────────────
   py::class_<Arc>(m, "Arc")
       .def(py::init<>())
-      .def(py::init(
-               [](py::object /*letters_that_make_a_word*/, py::object dest) {
-                 if (dest.is_none())
-                   return Arc{};
-                 return Arc(dest.cast<std::shared_ptr<State>>());
-               }),
+      .def(py::init([](const py::object& /*letters_that_make_a_word*/, const py::object& dest) {
+             if (dest.is_none()) return Arc{};
+             return Arc(dest.cast<std::shared_ptr<State>>());
+           }),
            py::arg("letters_that_make_a_word") = py::none(),
            py::arg("destination_state") = py::none())
       .def_readwrite("destination_state", &Arc::destination_state);
@@ -183,8 +170,8 @@ PYBIND11_MODULE(_cpp_ext, m) {
       .def(py::init<>())
       .def_readwrite("root", &Gaddag::root)
       .def("build_from_words", &Gaddag::build_from_words, py::arg("words"))
-      .def("build_from_file", &Gaddag::build_from_file,
-           py::arg("wordlist_path"), py::arg("use_cache") = true)
+      .def("build_from_file", &Gaddag::build_from_file, py::arg("wordlist_path"),
+           py::arg("use_cache") = true)
       .def("add_word", &Gaddag::add_word, py::arg("word"))
       .def("get_dictionary_letters", &Gaddag::get_dictionary_letters);
 
@@ -193,7 +180,7 @@ PYBIND11_MODULE(_cpp_ext, m) {
       .def(py::init<std::shared_ptr<Gaddag>>(), py::arg("dictionary"))
       // board: expose as list[list[Letter]]
       .def_property_readonly("board",
-                             [](const Board &b) {
+                             [](const Board& b) {
                                py::list rows;
                                for (int r = 0; r < BOARD_ROWS; r++) {
                                  py::list row;
@@ -206,29 +193,27 @@ PYBIND11_MODULE(_cpp_ext, m) {
                              })
       // square_types: expose as dict[(int,int), SquareType]
       .def_property_readonly("square_types",
-                             [](const Board &b) {
+                             [](const Board& b) {
                                py::dict d;
                                for (int r = 0; r < BOARD_ROWS; r++) {
                                  for (int c = 0; c < BOARD_COLS; c++) {
-                                   d[py::make_tuple(r, c)] =
-                                       b.square_types[r][c];
+                                   d[py::make_tuple(r, c)] = b.square_types[r][c];
                                  }
                                }
                                return d;
                              })
       // _anchor_points: expose as set[tuple[int,int]]
       .def_property_readonly("_anchor_points",
-                             [](const Board &b) {
+                             [](const Board& b) {
                                py::set s;
                                for (int r = 0; r < BOARD_ROWS; r++)
                                  for (int c = 0; c < BOARD_COLS; c++)
-                                   if (b.anchor_points[r][c])
-                                     s.add(py::make_tuple(r, c));
+                                   if (b.anchor_points[r][c]) s.add(py::make_tuple(r, c));
                                return s;
                              })
       // _horizontal_cross_checks: list[list[set[Letter]]]
       .def_property_readonly("_horizontal_cross_checks",
-                             [](const Board &b) {
+                             [](const Board& b) {
                                py::list rows;
                                for (int r = 0; r < BOARD_ROWS; r++) {
                                  py::list row;
@@ -236,8 +221,7 @@ PYBIND11_MODULE(_cpp_ext, m) {
                                    py::set s;
                                    CrossCheckSet mask = b.horizontal_cross_checks[r][c];
                                    for (int i = 0; i < 26; i++) {
-                                     if ((mask >> i) & 1u)
-                                       s.add(static_cast<Letter>(i));
+                                     if ((mask >> i) & 1u) s.add(static_cast<Letter>(i));
                                    }
                                    row.append(s);
                                  }
@@ -247,7 +231,7 @@ PYBIND11_MODULE(_cpp_ext, m) {
                              })
       // _vertical_cross_checks: list[list[set[Letter]]]
       .def_property_readonly("_vertical_cross_checks",
-                             [](const Board &b) {
+                             [](const Board& b) {
                                py::list rows;
                                for (int r = 0; r < BOARD_ROWS; r++) {
                                  py::list row;
@@ -255,8 +239,7 @@ PYBIND11_MODULE(_cpp_ext, m) {
                                    py::set s;
                                    CrossCheckSet mask = b.vertical_cross_checks[r][c];
                                    for (int i = 0; i < 26; i++) {
-                                     if ((mask >> i) & 1u)
-                                       s.add(static_cast<Letter>(i));
+                                     if ((mask >> i) & 1u) s.add(static_cast<Letter>(i));
                                    }
                                    row.append(s);
                                  }
@@ -266,21 +249,19 @@ PYBIND11_MODULE(_cpp_ext, m) {
                              })
       .def(
           "place_word",
-          [](Board &b, const std::vector<Letter> &word,
-             py::tuple start, py::tuple end) {
-            return b.place_word(word,
-              Point{start[0].cast<int>(), start[1].cast<int>()},
-              Point{end[0].cast<int>(),   end[1].cast<int>()});
+          [](Board& b, const std::vector<Letter>& word, const py::tuple& start,
+             const py::tuple& end) {
+            return b.place_word(word, Point{start[0].cast<int>(), start[1].cast<int>()},
+                                Point{end[0].cast<int>(), end[1].cast<int>()});
           },
           py::arg("word"), py::arg("start"), py::arg("end"))
       .def(
-          "place_word",
-          [](Board &b, const Move &move) { return b.place_word(move); },
+          "place_word", [](Board& b, const Move& move) { return b.place_word(move); },
           py::arg("move"))
       .def(
           "calculate_score",
-          [](const Board &b, const std::vector<Letter> &word,
-             py::tuple starting_point, bool vertical) {
+          [](const Board& b, const std::vector<Letter>& word, const py::tuple& starting_point,
+             bool vertical) {
             int row = starting_point[0].cast<int>();
             int col = starting_point[1].cast<int>();
             return b.calculate_score(word, row, col, vertical);
@@ -293,7 +274,7 @@ PYBIND11_MODULE(_cpp_ext, m) {
            "valid.")
       .def(
           "get_all_valid_moves",
-          [](const Board &b, const std::vector<Letter> &rack) {
+          [](const Board& b, const std::vector<Letter>& rack) {
             return b.get_all_valid_moves(rack);
           },
           py::arg("rack"),
@@ -303,7 +284,7 @@ PYBIND11_MODULE(_cpp_ext, m) {
   // ── Free helpers ───────────────────────────────────────────────────────────
   m.def(
       "in_bounds",
-      [](py::tuple point) {
+      [](const py::tuple& point) {
         int r = point[0].cast<int>();
         int c = point[1].cast<int>();
         return r >= 0 && r < BOARD_ROWS && c >= 0 && c < BOARD_COLS;

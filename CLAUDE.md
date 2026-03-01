@@ -26,6 +26,15 @@ uv run pytest scrabble_bot/tests/test_integration_gaddag.py -v
 Formatting is handled by autopep8 (max line length 100, aggressive level 1).
 Type checking uses Pyright in basic mode (stubs in `scrabble_bot/_cpp_ext.pyi`).
 
+C++ formatting and static analysis use clang-format and clang-tidy (config in `.clang-format`
+and `.clang-tidy`). Run via Makefile targets:
+
+```bash
+make format        # format all C++ files in place
+make format_check  # check formatting (non-zero exit if diff found)
+make tidy          # run clang-tidy static analysis (builds first)
+```
+
 ## Architecture
 
 This is a Scrabble-playing AI bot. The game logic lives in a C++ core compiled to a

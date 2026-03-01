@@ -1,7 +1,10 @@
 # Makefile for building Quackle with Python3 SWIG bindings
 # Based on https://github.com/quackle/quackle.git
 
-.PHONY: all clean help build_cpp test_cpp
+.PHONY: all clean help build_cpp test_cpp format format_check tidy
+
+CLANG_FORMAT ?= $(shell which clang-format 2>/dev/null || echo /opt/homebrew/opt/llvm/bin/clang-format)
+CLANG_TIDY   ?= $(shell which clang-tidy   2>/dev/null || echo /opt/homebrew/opt/llvm/bin/clang-tidy)
 
 # Directories
 QUACKLE_DIR = quackle
@@ -27,10 +30,29 @@ test_cpp: build_cpp
 	@echo "Running C++ tests..."
 	ctest --test-dir build --output-on-failure -C Release
 
+format:
+	@echo "Formatting C++ files..."
+	find cpp -name '*.cpp' -o -name '*.hpp' | sort | xargs $(CLANG_FORMAT) -i
+	@echo "Format complete"
+
+format_check:
+	@echo "Checking C++ formatting..."
+	find cpp -name '*.cpp' -o -name '*.hpp' | sort | xargs $(CLANG_FORMAT) --dry-run --Werror
+	@echo "Format check passed"
+
+tidy: build_cpp
+	@echo "Running clang-tidy..."
+	find cpp/src cpp/include cpp/bindings -name '*.cpp' | sort | \
+	    xargs $(CLANG_TIDY) -p build/ --extra-arg=--sysroot=$(shell xcrun --show-sdk-path)
+	@echo "Tidy complete"
+
 help:
 	@echo "Available targets:"
 	@echo "  build_cpp             - Configure and build the C++ extension + Catch2 tests"
 	@echo "  test_cpp              - Build and run the Catch2 C++ tests"
+	@echo "  format                - Format all C++ files in place with clang-format"
+	@echo "  format_check          - Check C++ formatting (non-zero exit if diff found)"
+	@echo "  tidy                  - Run clang-tidy static analysis on C++ sources"
 	@echo "  get_quackle           - Clone Quackle repository from GitHub"
 	@echo "  build_libquackle      - Build libquackle with -fPIC"
 	@echo "  build_libquackleio    - Build libquackleio with -fPIC"

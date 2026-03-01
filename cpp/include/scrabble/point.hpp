@@ -6,10 +6,7 @@ struct Point {
   int row;
   int col;
 
-  bool operator==(const Point &o) const noexcept {
-    return row == o.row && col == o.col;
-  }
+  bool operator==(const Point& o) const noexcept { return row == o.row && col == o.col; }
 };
 
-
-} // namespace scrabble
+}  // namespace scrabble

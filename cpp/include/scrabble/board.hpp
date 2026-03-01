@@ -1,14 +1,14 @@
 #pragma once
 
-#include "gaddag.hpp"
-#include "letter.hpp"
-#include "move.hpp"
-#include "point.hpp"
-
 #include <array>
 #include <memory>
 #include <string>
 #include <vector>
+
+#include "gaddag.hpp"
+#include "letter.hpp"
+#include "move.hpp"
+#include "point.hpp"
 
 namespace scrabble {
 
@@ -23,18 +23,17 @@ enum class SquareType : uint8_t {
   TRIPLE_LETTER
 };
 
-using CrossChecks =
-    std::array<std::array<CrossCheckSet, BOARD_COLS>, BOARD_ROWS>;
+using CrossChecks = std::array<std::array<CrossCheckSet, BOARD_COLS>, BOARD_ROWS>;
 
 class Board {
-public:
+ public:
   std::array<std::array<Letter, BOARD_COLS>, BOARD_ROWS> board;
   std::array<std::array<SquareType, BOARD_COLS>, BOARD_ROWS> square_types;
 
-  CrossChecks horizontal_cross_checks; // letters valid for horizontal words
-                                       // (used when placing vertically)
-  CrossChecks vertical_cross_checks;   // letters valid for vertical words (used
-                                       // when placing horizontally)
+  CrossChecks horizontal_cross_checks;  // letters valid for horizontal words
+                                        // (used when placing vertically)
+  CrossChecks vertical_cross_checks;    // letters valid for vertical words (used
+                                        // when placing horizontally)
 
   std::array<std::array<bool, BOARD_COLS>, BOARD_ROWS> anchor_points{};
 
@@ -43,15 +42,14 @@ public:
   // Place a word (list of Letters). Direction inferred: start.row == end.row →
   // horizontal; start.col == end.col → vertical. Throws std::invalid_argument
   // on invalid placement. Returns the points earned from placing the word.
-  int place_word(const std::vector<Letter> &word, Point start, Point end);
+  int place_word(const std::vector<Letter>& word, Point start, Point end);
 
   // Convenience: apply a pre-built Move directly.
-  int place_word(const Move &move);
+  int place_word(const Move& move);
 
   // Compute the score for placing word at (row, col), horizontal or vertical,
   // without modifying the board. Assumes the placement is valid.
-  int calculate_score(const std::vector<Letter> &word, int row, int col,
-                      bool vertical) const;
+  int calculate_score(const std::vector<Letter>& word, int row, int col, bool vertical) const;
 
   std::string to_string() const;
 
@@ -61,27 +59,24 @@ public:
   std::vector<std::string> validate_board() const;
 
   // Returns all valid moves for the given rack as a list of Move objects.
-  std::vector<Move> get_all_valid_moves(const std::vector<Letter> &rack) const;
+  std::vector<Move> get_all_valid_moves(const std::vector<Letter>& rack) const;
 
-private:
+ private:
   std::shared_ptr<Gaddag> dict_;
-  bool first_move_;
+  bool first_move_{true};
 
   // Tile entry used during move generation
   struct TileEntry {
-    Letter gaddag_letter; // A-Z (never BLANK; blanks store their display letter)
-    bool is_blank;        // true = was played as a blank tile (scores 0)
-    bool is_new;          // true = placed from rack; false = existing board tile
+    Letter gaddag_letter;  // A-Z (never BLANK; blanks store their display letter)
+    bool is_blank;         // true = was played as a blank tile (scores 0)
+    bool is_new;           // true = placed from rack; false = existing board tile
 
-    Letter score_letter() const {
-      return is_blank ? Letter::BLANK : gaddag_letter;
-    }
+    Letter score_letter() const { return is_blank ? Letter::BLANK : gaddag_letter; }
 
     std::string letters_str() const {
       if (is_blank) {
         char c = letter_to_char(gaddag_letter);
-        return std::string(1,
-                           static_cast<char>(std::tolower(static_cast<unsigned char>(c))));
+        return std::string(1, static_cast<char>(std::tolower(static_cast<unsigned char>(c))));
       }
       return letter_to_key(gaddag_letter);
     }
@@ -89,9 +84,8 @@ private:
 
   void build_square_types();
 
-  int place_word_horizontally(const std::vector<Letter> &word, int row,
-                              int col);
-  int place_word_vertically(const std::vector<Letter> &word, int row, int col);
+  int place_word_horizontally(const std::vector<Letter>& word, int row, int col);
+  int place_word_vertically(const std::vector<Letter>& word, int row, int col);
 
   void update_horizontal_cross_checks(int row, int col);
   void update_vertical_cross_checks(int row, int col);
@@ -106,7 +100,7 @@ private:
   }
 
   // Returns true if `word` exists in the dictionary via GADDAG traversal.
-  bool is_word_valid(const std::vector<Letter> &word) const;
+  bool is_word_valid(const std::vector<Letter>& word) const;
 
   // ── Move generation helpers ──────────────────────────────────────────────
 
@@ -115,28 +109,24 @@ private:
   CrossCheckSet get_cross_checks_for(int r, int c, bool vertical) const;
 
   // Record a completed move into results.
-  void record_move(const std::vector<TileEntry> &left_part,
-                   const std::vector<TileEntry> &right_part, int anchor_r,
-                   int anchor_c, bool vertical,
-                   std::vector<Move> &results) const;
+  void record_move(const std::vector<TileEntry>& left_part,
+                   const std::vector<TileEntry>& right_part, int anchor_r, int anchor_c,
+                   bool vertical, std::vector<Move>& results) const;
 
   // Extend the word to the right from position (r,c).
-  void extend_right(int r, int c, bool vertical, std::shared_ptr<State> state,
-                    const std::vector<Letter> &rack,
-                    std::vector<TileEntry> &left_part,
-                    std::vector<TileEntry> &right_part, int anchor_r,
-                    int anchor_c, std::vector<Move> &results) const;
+  void extend_right(int r, int c, bool vertical, const std::shared_ptr<State>& state,
+                    const std::vector<Letter>& rack, std::vector<TileEntry>& left_part,
+                    std::vector<TileEntry>& right_part, int anchor_r, int anchor_c,
+                    std::vector<Move>& results) const;
 
   // Extend the word to the left from position (r,c).
-  void extend_left(int r, int c, bool vertical, std::shared_ptr<State> state,
-                   const std::vector<Letter> &rack, int limit,
-                   std::vector<TileEntry> &left_part, int anchor_r,
-                   int anchor_c, std::vector<Move> &results) const;
+  void extend_left(int r, int c, bool vertical, const std::shared_ptr<State>& state,
+                   const std::vector<Letter>& rack, int limit, std::vector<TileEntry>& left_part,
+                   int anchor_r, int anchor_c, std::vector<Move>& results) const;
 
   // Generate all valid moves for a single anchor point.
-  void generate_for_anchor(int r, int c, bool vertical,
-                            const std::vector<Letter> &rack,
-                            std::vector<Move> &results) const;
+  void generate_for_anchor(int r, int c, bool vertical, const std::vector<Letter>& rack,
+                           std::vector<Move>& results) const;
 };
 
-} // namespace scrabble
+}  // namespace scrabble

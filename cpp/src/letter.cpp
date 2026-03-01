@@ -5,4 +5,4 @@
 
 namespace scrabble {
 // (nothing to define here)
-} // namespace scrabble
+}  // namespace scrabble
