@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
@@ -19,6 +20,16 @@ constexpr const char* DELIMITER = "\xE2\x97\x87";
 // Indices 0-25: Letters A-Z, 26: BLANK, 27: DELIMITER.
 constexpr int DELIMITER_ARC_INDEX = 27;
 
+// Bitmask helpers for State::letters_that_make_a_word (one bit per letter A-Z + BLANK).
+inline constexpr bool ltmaw_has(uint32_t mask, Letter l) noexcept {
+  return (mask >> static_cast<uint8_t>(l)) & 1u;
+}
+inline constexpr uint32_t ltmaw_add(uint32_t mask, Letter l) noexcept {
+  return mask | (1u << static_cast<uint8_t>(l));
+}
+inline constexpr bool ltmaw_has(uint32_t mask, int idx) noexcept { return (mask >> idx) & 1u; }
+inline constexpr uint32_t ltmaw_add(uint32_t mask, int idx) noexcept { return mask | (1u << idx); }
+
 class State;
 
 struct Arc {
@@ -33,7 +44,7 @@ class State {
  public:
   // Raw (non-owning) pointers — owned by Gaddag::states_ arena.
   std::array<State*, 28> arcs{};
-  std::array<bool, 27> letters_that_make_a_word{};
+  uint32_t letters_that_make_a_word = 0;
   // Keeps Python-created child states alive when add_arc is called from
   // Python bindings on a standalone State (not arena-managed).
   std::vector<std::shared_ptr<State>> python_children;

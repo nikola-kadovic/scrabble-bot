@@ -140,7 +140,7 @@ PYBIND11_MODULE(_cpp_ext, m) {
                              [](const State& self) {
                                py::set s;
                                for (int i = 0; i < 26; i++) {
-                                 if (self.letters_that_make_a_word[i]) {
+                                 if (ltmaw_has(self.letters_that_make_a_word, i)) {
                                    s.add(py::str(std::string(1, static_cast<char>('A' + i))));
                                  }
                                }
@@ -174,8 +174,7 @@ PYBIND11_MODULE(_cpp_ext, m) {
           py::return_value_policy::reference)
       .def(
           "add_ending_arc",
-          [](State& self, const std::string& letter,
-             const std::string& ending_letter) -> State* {
+          [](State& self, const std::string& letter, const std::string& ending_letter) -> State* {
             if (ending_letter.empty())
               throw std::invalid_argument("ending_letter must not be empty");
             int idx;
@@ -190,11 +189,11 @@ PYBIND11_MODULE(_cpp_ext, m) {
               self.python_children.push_back(child);
               self.arcs[idx] = child.get();
             }
-            self.arcs[idx]->letters_that_make_a_word[ending_letter[0] - 'A'] = true;
+            self.arcs[idx]->letters_that_make_a_word =
+                ltmaw_add(self.arcs[idx]->letters_that_make_a_word, ending_letter[0] - 'A');
             return self.arcs[idx];
           },
-          py::arg("letter"), py::arg("ending_letter"),
-          py::return_value_policy::reference)
+          py::arg("letter"), py::arg("ending_letter"), py::return_value_policy::reference)
       .def(
           "add_ending_letter",
           [](State& self, const std::string& letter) {

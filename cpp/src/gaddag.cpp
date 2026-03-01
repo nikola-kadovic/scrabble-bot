@@ -39,7 +39,7 @@ static int key_to_arc_index(const std::string& key) {
 }  // namespace
 
 void State::add_ending_letter(char letter) {
-  letters_that_make_a_word[static_cast<unsigned char>(letter - 'A')] = true;
+  letters_that_make_a_word = ltmaw_add(letters_that_make_a_word, letter - 'A');
 }
 
 const State* State::get_next_state(const std::string& letter) const {
@@ -137,7 +137,7 @@ void Gaddag::add_word(const std::string& word) {
   }
   {
     State* dest = ensure_arc(current, word[1] - 'A');
-    dest->letters_that_make_a_word[word[0] - 'A'] = true;
+    dest->letters_that_make_a_word = ltmaw_add(dest->letters_that_make_a_word, word[0] - 'A');
   }
 
   // Step 2: Add arcs for word[n-2 .. 0] then ending arc DELIMITER → word[n-1]
@@ -148,7 +148,7 @@ void Gaddag::add_word(const std::string& word) {
   }
   {
     State* dest = ensure_arc(current, DELIMITER_ARC_INDEX);
-    dest->letters_that_make_a_word[word[n - 1] - 'A'] = true;
+    dest->letters_that_make_a_word = ltmaw_add(dest->letters_that_make_a_word, word[n - 1] - 'A');
     current = dest;
   }
 
@@ -242,12 +242,7 @@ void Gaddag::save_cache(const std::string& cache_path) const {
 
   // Each state
   for (State* s : ordered) {
-    // letters_that_make_a_word as a 26-bit bitmask
-    uint32_t bitmask = 0;
-    for (int i = 0; i < 26; i++) {
-      if (s->letters_that_make_a_word[i]) bitmask |= (1u << i);
-    }
-    write_u32(out, bitmask);
+    write_u32(out, s->letters_that_make_a_word);
 
     // arcs: count non-null entries, then write (arc_index, dest_id) pairs
     uint8_t num_arcs = 0;
@@ -292,12 +287,7 @@ bool Gaddag::load_cache(const std::string& cache_path) {
 
   // Fill in letters_that_make_a_word and arcs
   for (uint32_t i = 0; i < num_states; i++) {
-    uint32_t bitmask = read_u32(in);
-    for (int j = 0; j < 26; j++) {
-      if ((bitmask >> j) & 1u) {
-        ptrs[i]->letters_that_make_a_word[j] = true;
-      }
-    }
+    ptrs[i]->letters_that_make_a_word = read_u32(in);
     uint8_t num_arcs = read_u8(in);
     for (uint8_t j = 0; j < num_arcs; j++) {
       uint8_t arc_index = read_u8(in);

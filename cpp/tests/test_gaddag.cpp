@@ -23,15 +23,12 @@ static size_t arcs_size(const State& s) {
   return n;
 }
 
-static bool ltmaw_has(const State& s, char c) {
-  return s.letters_that_make_a_word[static_cast<unsigned char>(c - 'A')];
+static bool ltmaw_has_char(const State& s, char c) {
+  return ltmaw_has(s.letters_that_make_a_word, c - 'A');
 }
 
 static size_t ltmaw_size(const State& s) {
-  size_t n = 0;
-  for (bool b : s.letters_that_make_a_word)
-    if (b) n++;
-  return n;
+  return static_cast<size_t>(__builtin_popcount(s.letters_that_make_a_word));
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -82,8 +79,8 @@ TEST_CASE("GADDAG minimization reuses delimiter state across words", "[gaddag][s
   const State* s_delim = s_CBA->get_next_state(DELIMITER_ARC_INDEX);
   REQUIRE(s_delim != nullptr);
   // Both 'D' and 'E' must appear in the same (shared) delimiter state.
-  CHECK(ltmaw_has(*s_delim, 'D'));
-  CHECK(ltmaw_has(*s_delim, 'E'));
+  CHECK(ltmaw_has_char(*s_delim, 'D'));
+  CHECK(ltmaw_has_char(*s_delim, 'E'));
 }
 
 TEST_CASE("GADDAG ending letter recorded in LTMAW", "[gaddag][state]") {
@@ -94,7 +91,7 @@ TEST_CASE("GADDAG ending letter recorded in LTMAW", "[gaddag][state]") {
   REQUIRE(s_D != nullptr);
   const State* s_delim = s_D->get_next_state(DELIMITER_ARC_INDEX);
   REQUIRE(s_delim != nullptr);
-  CHECK(ltmaw_has(*s_delim, 'E'));
+  CHECK(ltmaw_has_char(*s_delim, 'E'));
 }
 
 TEST_CASE("State::add_ending_letter inserts to set", "[gaddag][state]") {
@@ -103,8 +100,8 @@ TEST_CASE("State::add_ending_letter inserts to set", "[gaddag][state]") {
   s.add_ending_letter('X');  // duplicate
   s.add_ending_letter('Y');
   CHECK(ltmaw_size(s) == 2);
-  CHECK(ltmaw_has(s, 'X'));
-  CHECK(ltmaw_has(s, 'Y'));
+  CHECK(ltmaw_has_char(s, 'X'));
+  CHECK(ltmaw_has_char(s, 'Y'));
 }
 
 TEST_CASE("State::get_next_state returns nullptr for missing arc", "[gaddag][state]") {
@@ -150,7 +147,7 @@ TEST_CASE("Gaddag traversal finds expected word structure", "[gaddag]") {
   REQUIRE(s_A != nullptr);
   auto s_delim = s_A->get_next_state(DELIMITER);
   REQUIRE(s_delim != nullptr);
-  CHECK(ltmaw_has(*s_delim, 'B'));
+  CHECK(ltmaw_has_char(*s_delim, 'B'));
 }
 
 TEST_CASE("Gaddag add_word throws on single letter", "[gaddag]") {

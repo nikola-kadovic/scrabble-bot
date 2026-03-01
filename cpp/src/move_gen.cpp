@@ -1,4 +1,5 @@
 #include <omp.h>
+
 #include <unordered_set>
 #include <vector>
 
@@ -123,11 +124,11 @@ void Board::extend_right(int r, int c, bool vertical, const State* state,
     right_part.push_back({L, false, false});
 
     // Check word end BEFORE navigating
-    if (state->letters_that_make_a_word[static_cast<int>(L)] && next_empty) {
+    if (ltmaw_has(state->letters_that_make_a_word, L) && next_empty) {
       record_move(left_part, right_part, anchor_r, anchor_c, vertical, results);
     }
 
-    auto next_state = state->get_next_state(static_cast<int>(L));
+    const auto *next_state = state->get_next_state(static_cast<int>(L));
     if (next_state) {
       extend_right(next_r, next_c, vertical, next_state, rack, left_part, right_part, anchor_r,
                    anchor_c, results);
@@ -143,11 +144,11 @@ void Board::extend_right(int r, int c, bool vertical, const State* state,
         right_part.push_back({gaddag_L, is_blank, true});
 
         // Check word end BEFORE navigating
-        if (state->letters_that_make_a_word[static_cast<int>(gaddag_L)] && next_empty) {
+        if (ltmaw_has(state->letters_that_make_a_word, gaddag_L) && next_empty) {
           record_move(left_part, right_part, anchor_r, anchor_c, vertical, results);
         }
 
-        auto next_state = state->get_next_state(static_cast<int>(gaddag_L));
+        const auto *next_state = state->get_next_state(static_cast<int>(gaddag_L));
         if (next_state) {
           auto remaining = rack_minus(rack, rack_tile);
           extend_right(next_r, next_c, vertical, next_state, remaining, left_part, right_part,
@@ -168,7 +169,7 @@ void Board::extend_left(int r, int c, bool vertical, const State* state,
   int dc = vertical ? 0 : 1;
 
   // Option A: stop here, cross delimiter, extend right
-  auto delim_state = state->get_next_state(DELIMITER_ARC_INDEX);
+  const auto *delim_state = state->get_next_state(DELIMITER_ARC_INDEX);
   if (delim_state) {
     std::vector<TileEntry> right_part;
     extend_right(anchor_r + dr, anchor_c + dc, vertical, delim_state, rack, left_part, right_part,
@@ -182,7 +183,7 @@ void Board::extend_left(int r, int c, bool vertical, const State* state,
       for (auto [gaddag_L, is_blank] : candidates_for(rack_tile)) {
         if (!cross_check_has(cc, gaddag_L)) continue;
 
-        auto next_state = state->get_next_state(static_cast<int>(gaddag_L));
+        const auto *next_state = state->get_next_state(static_cast<int>(gaddag_L));
         if (!next_state) continue;
 
         auto remaining = rack_minus(rack, rack_tile);
@@ -212,7 +213,7 @@ void Board::generate_for_anchor(int r, int c, bool vertical, const std::vector<L
       for (auto [gaddag_L, is_blank] : candidates_for(rack_tile)) {
         if (!cross_check_has(cc_anchor, gaddag_L)) continue;
 
-        auto state = dict_->root->get_next_state(static_cast<int>(gaddag_L));
+        const auto *state = dict_->root->get_next_state(static_cast<int>(gaddag_L));
         if (!state) continue;
 
         std::vector<TileEntry> left_part;
@@ -237,7 +238,7 @@ void Board::generate_for_anchor(int r, int c, bool vertical, const std::vector<L
               !in_bounds(further_r, further_c) || board[further_r][further_c] == Letter::BLANK;
 
           if (is_leftmost && right_of_anchor_empty &&
-              state->letters_that_make_a_word[static_cast<int>(tile)]) {
+              ltmaw_has(state->letters_that_make_a_word, tile)) {
             // Record a move that ends at this leftmost tile (no right part).
             left_part.push_back({tile, false, false});
             std::vector<TileEntry> empty_right;
@@ -260,7 +261,7 @@ void Board::generate_for_anchor(int r, int c, bool vertical, const std::vector<L
 
         // All existing left tiles consumed with valid state – cross delimiter
         // and extend right for words that have a suffix after the existing tiles.
-        auto delim_state = state->get_next_state(DELIMITER_ARC_INDEX);
+        const auto *delim_state = state->get_next_state(DELIMITER_ARC_INDEX);
         if (!delim_state) continue;
 
         auto remaining = rack_minus(rack, rack_tile);
@@ -288,7 +289,7 @@ void Board::generate_for_anchor(int r, int c, bool vertical, const std::vector<L
       for (auto [gaddag_L, is_blank] : candidates_for(rack_tile)) {
         if (!cross_check_has(cc_anchor, gaddag_L)) continue;
 
-        auto state = dict_->root->get_next_state(static_cast<int>(gaddag_L));
+        const auto *state = dict_->root->get_next_state(static_cast<int>(gaddag_L));
         if (!state) continue;
 
         auto remaining = rack_minus(rack, rack_tile);
@@ -319,8 +320,7 @@ std::vector<Move> Board::get_all_valid_moves(const std::vector<Letter>& rack) co
   }
 
   std::vector<Move> results;
-  for (auto& slot : slots)
-    results.insert(results.end(), slot.begin(), slot.end());
+  for (auto& slot : slots) results.insert(results.end(), slot.begin(), slot.end());
   return results;
 }
 

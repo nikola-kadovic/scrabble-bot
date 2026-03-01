@@ -120,9 +120,9 @@ class Board {
                     std::vector<Move>& results) const;
 
   // Extend the word to the left from position (r,c).
-  void extend_left(int r, int c, bool vertical, const State* state,
-                   const std::vector<Letter>& rack, int limit, std::vector<TileEntry>& left_part,
-                   int anchor_r, int anchor_c, std::vector<Move>& results) const;
+  void extend_left(int r, int c, bool vertical, const State* state, const std::vector<Letter>& rack,
+                   int limit, std::vector<TileEntry>& left_part, int anchor_r, int anchor_c,
+                   std::vector<Move>& results) const;
 
   // Generate all valid moves for a single anchor point.
   void generate_for_anchor(int r, int c, bool vertical, const std::vector<Letter>& rack,

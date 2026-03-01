@@ -394,7 +394,7 @@ bool Board::letter_makes_word_horizontally(int row, int col, Letter letter) cons
         // Don't advance; `idx` is the leftmost letter — check it last
         break;
       }
-      auto next = state->get_next_state(static_cast<int>(board[row][idx]));
+      const auto *next = state->get_next_state(static_cast<int>(board[row][idx]));
       if (!next) return false;
       state = next;
     }
@@ -403,7 +403,7 @@ bool Board::letter_makes_word_horizontally(int row, int col, Letter letter) cons
 
   if (has_left && has_right) {
     // Process the leftmost letter before crossing the delimiter
-    auto next = state->get_next_state(static_cast<int>(board[row][idx]));
+    const auto *next = state->get_next_state(static_cast<int>(board[row][idx]));
     if (!next) return false;
     state = next;
   }
@@ -411,7 +411,7 @@ bool Board::letter_makes_word_horizontally(int row, int col, Letter letter) cons
   if (!state) return false;
 
   if (has_right) {
-    auto next = state->get_next_state(DELIMITER_ARC_INDEX);
+    const auto *next = state->get_next_state(DELIMITER_ARC_INDEX);
     if (!next) return false;
     state = next;
 
@@ -420,7 +420,7 @@ bool Board::letter_makes_word_horizontally(int row, int col, Letter letter) cons
         // Don't advance; `idx` is the rightmost letter — check it last
         break;
       }
-      auto next2 = state->get_next_state(static_cast<int>(board[row][idx]));
+      const auto *next2 = state->get_next_state(static_cast<int>(board[row][idx]));
       if (!next2) return false;
       state = next2;
     }
@@ -428,7 +428,7 @@ bool Board::letter_makes_word_horizontally(int row, int col, Letter letter) cons
 
   if (!has_left && !has_right) return false;
 
-  return state && state->letters_that_make_a_word[static_cast<int>(board[row][idx])];
+  return state && ltmaw_has(state->letters_that_make_a_word, board[row][idx]);
 }
 
 // ─── letter_makes_word_vertically ────────────────────────────────────────────
@@ -449,7 +449,7 @@ bool Board::letter_makes_word_vertically(int row, int col, Letter letter) const 
       if (idx == 0 || board[idx - 1][col] == Letter::BLANK) {
         break;
       }
-      auto next = state->get_next_state(static_cast<int>(board[idx][col]));
+      const auto *next = state->get_next_state(static_cast<int>(board[idx][col]));
       if (!next) return false;
       state = next;
     }
@@ -457,7 +457,7 @@ bool Board::letter_makes_word_vertically(int row, int col, Letter letter) const 
   }
 
   if (has_up && has_down) {
-    auto next = state->get_next_state(static_cast<int>(board[idx][col]));
+    const auto *next = state->get_next_state(static_cast<int>(board[idx][col]));
     if (!next) return false;
     state = next;
   }
@@ -465,7 +465,7 @@ bool Board::letter_makes_word_vertically(int row, int col, Letter letter) const 
   if (!state) return false;
 
   if (has_down) {
-    auto next = state->get_next_state(DELIMITER_ARC_INDEX);
+    const auto *next = state->get_next_state(DELIMITER_ARC_INDEX);
     if (!next) return false;
     state = next;
 
@@ -473,7 +473,7 @@ bool Board::letter_makes_word_vertically(int row, int col, Letter letter) const 
       if (idx == BOARD_ROWS - 1 || board[idx + 1][col] == Letter::BLANK) {
         break;
       }
-      auto next2 = state->get_next_state(static_cast<int>(board[idx][col]));
+      const auto *next2 = state->get_next_state(static_cast<int>(board[idx][col]));
       if (!next2) return false;
       state = next2;
     }
@@ -481,7 +481,7 @@ bool Board::letter_makes_word_vertically(int row, int col, Letter letter) const 
 
   if (!has_up && !has_down) return false;
 
-  return state && state->letters_that_make_a_word[static_cast<int>(board[idx][col])];
+  return state && ltmaw_has(state->letters_that_make_a_word, board[idx][col]);
 }
 
 // ─── update_anchor_points ────────────────────────────────────────────────────
@@ -549,7 +549,7 @@ bool Board::is_word_valid(const std::vector<Letter>& word) const {
     if (!state) return false;
   }
 
-  return state->letters_that_make_a_word[static_cast<int>(word[n - 1])];
+  return ltmaw_has(state->letters_that_make_a_word, word[n - 1]);
 }
 
 // ─── validate_board
