@@ -4,3 +4,6 @@
 
 - https://web.stanford.edu/class/aa228/reports/2019/final41.pdf
     - Used GADDAG and Q-Learning to learn linear valuation function is possible and apparently works pretty good
+
+
+- Batched inference: https://arxiv.org/abs/1910.06591
