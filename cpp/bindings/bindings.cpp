@@ -1,11 +1,14 @@
+#include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
 #include "scrabble/board.hpp"
+#include "scrabble/env.hpp"
 #include "scrabble/gaddag.hpp"
 #include "scrabble/letter.hpp"
 #include "scrabble/move.hpp"
 #include "scrabble/point.hpp"
+#include "scrabble/vec_env.hpp"
 
 namespace py = pybind11;
 using namespace scrabble;
@@ -346,4 +349,104 @@ PYBIND11_MODULE(_cpp_ext, m) {
         return r >= 0 && r < BOARD_ROWS && c >= 0 && c < BOARD_COLS;
       },
       py::arg("point"));
+
+  // ── RL environment constants ───────────────────────────────────────────────
+  m.attr("OBS_DIM") = OBS_DIM;
+  m.attr("MAX_MOVES_PER_ENV") = MAX_MOVES_PER_ENV;
+
+  // ── ScrabbleEnv ────────────────────────────────────────────────────────────
+  py::class_<ScrabbleEnv::StepResult>(m, "StepResult")
+      .def_readonly("reward", &ScrabbleEnv::StepResult::reward)
+      .def_readonly("done", &ScrabbleEnv::StepResult::done)
+      .def("__repr__", [](const ScrabbleEnv::StepResult& r) {
+        return "StepResult(reward=" + std::to_string(r.reward) +
+               ", done=" + (r.done ? "True" : "False") + ")";
+      });
+
+  py::class_<ScrabbleEnv>(m, "ScrabbleEnv")
+      .def(py::init<std::shared_ptr<Gaddag>, uint32_t>(),
+           py::arg("dict"), py::arg("seed") = 0u)
+      .def(py::init<const ScrabbleEnv&>())  // copy constructor — for MCTS node cloning
+      .def("reset", &ScrabbleEnv::reset)
+      .def("step", &ScrabbleEnv::step, py::arg("action_idx"))
+      .def("get_valid_moves", &ScrabbleEnv::get_all_valid_moves_py,
+           "Returns list of Move objects (including pass sentinel as last element).")
+      .def_property_readonly("done", &ScrabbleEnv::done)
+      .def_property_readonly("current_player", &ScrabbleEnv::current_player)
+      .def_property_readonly("consecutive_passes", &ScrabbleEnv::consecutive_passes)
+      .def_property_readonly("bag_remaining", &ScrabbleEnv::bag_remaining)
+      .def_property_readonly(
+          "player_scores",
+          [](const ScrabbleEnv& e) {
+            return py::make_tuple(e.player_scores()[0], e.player_scores()[1]);
+          })
+      .def_property_readonly(
+          "rack",
+          [](const ScrabbleEnv& e) {
+            // Returns current player's rack as a list of Letter
+            py::list r;
+            for (Letter l : e.rack(e.current_player())) r.append(l);
+            return r;
+          });
+
+  // ── VectorizedEnv ─────────────────────────────────────────────────────────
+  // Helper: expose a flat C++ vector as a typed numpy array with explicit shape.
+  // The array holds a reference to `self` (the VectorizedEnv) to prevent GC.
+  auto as_array = [](auto& self, auto& vec, std::vector<ssize_t> shape) {
+    using T = typename std::remove_reference_t<decltype(vec)>::value_type;
+    std::vector<ssize_t> strides(shape.size());
+    strides.back() = sizeof(T);
+    for (int i = static_cast<int>(shape.size()) - 2; i >= 0; i--)
+      strides[i] = strides[i + 1] * shape[i + 1];
+    return py::array_t<T>(shape, strides, vec.data(), py::cast(self));
+  };
+
+  py::class_<VectorizedEnv>(m, "VectorizedEnv")
+      .def(py::init<const std::shared_ptr<Gaddag>&, int, uint32_t>(),
+           py::arg("dict"), py::arg("num_envs"), py::arg("seed") = 0u)
+      .def("reset_all", &VectorizedEnv::reset_all)
+      .def("step_all", &VectorizedEnv::step_all,
+           py::call_guard<py::gil_scoped_release>())
+      .def_property_readonly("num_envs", &VectorizedEnv::num_envs)
+      .def_property_readonly("observations",
+                             [as_array](VectorizedEnv& s) {
+                               return as_array(s, s.obs_buf_,
+                                              {s.num_envs(), OBS_DIM});
+                             })
+      .def_property_readonly("actions",
+                             [as_array](VectorizedEnv& s) {
+                               return as_array(s, s.action_buf_, {s.num_envs()});
+                             })
+      .def_property_readonly("rewards",
+                             [as_array](VectorizedEnv& s) {
+                               return as_array(s, s.reward_buf_, {s.num_envs()});
+                             })
+      .def_property_readonly("dones",
+                             [as_array](VectorizedEnv& s) {
+                               return as_array(s, s.done_buf_, {s.num_envs()});
+                             })
+      .def_property_readonly("num_moves",
+                             [as_array](VectorizedEnv& s) {
+                               return as_array(s, s.num_moves_buf_, {s.num_envs()});
+                             })
+      .def_property_readonly("move_coords",
+                             [as_array](VectorizedEnv& s) {
+                               return as_array(s, s.move_coords_,
+                                              {s.num_envs(), MAX_MOVES_PER_ENV, 4});
+                             })
+      .def_property_readonly("move_letters",
+                             [as_array](VectorizedEnv& s) {
+                               return as_array(s, s.move_letters_,
+                                              {s.num_envs(), MAX_MOVES_PER_ENV, 7});
+                             })
+      .def_property_readonly("move_is_blank",
+                             [as_array](VectorizedEnv& s) {
+                               return as_array(s, s.move_is_blank_,
+                                              {s.num_envs(), MAX_MOVES_PER_ENV, 7});
+                             })
+      .def_property_readonly("move_scores",
+                             [as_array](VectorizedEnv& s) {
+                               return as_array(s, s.move_scores_,
+                                              {s.num_envs(), MAX_MOVES_PER_ENV});
+                             });
 }

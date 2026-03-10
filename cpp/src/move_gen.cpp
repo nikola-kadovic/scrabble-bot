@@ -313,10 +313,19 @@ std::vector<Move> Board::get_all_valid_moves(const std::vector<Letter>& rack) co
 
   std::vector<std::vector<Move>> slots(work.size());
 
+  // Guard against nested parallelism: when called from within VectorizedEnv::step_all()
+  // the outer loop already occupies OpenMP threads; run serially in that case.
+  if (omp_in_parallel()) {
+    for (int i = 0; i < (int)work.size(); i++) {
+      auto [r, c, vertical] = work[i];
+      generate_for_anchor(r, c, vertical, rack, slots[i]);
+    }
+  } else {
 #pragma omp parallel for schedule(dynamic)
-  for (int i = 0; i < (int)work.size(); i++) {
-    auto [r, c, vertical] = work[i];
-    generate_for_anchor(r, c, vertical, rack, slots[i]);
+    for (int i = 0; i < (int)work.size(); i++) {
+      auto [r, c, vertical] = work[i];
+      generate_for_anchor(r, c, vertical, rack, slots[i]);
+    }
   }
 
   std::vector<Move> results;

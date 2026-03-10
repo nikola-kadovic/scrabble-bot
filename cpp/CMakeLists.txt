@@ -3,6 +3,8 @@ add_library(scrabble_core STATIC
     src/gaddag.cpp
     src/board.cpp
     src/move_gen.cpp
+    src/env.cpp
+    src/vec_env.cpp
 )
 
 target_include_directories(scrabble_core PUBLIC include)

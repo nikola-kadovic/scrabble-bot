@@ -4,6 +4,7 @@ add_executable(scrabble_tests
     test_gaddag.cpp
     test_board.cpp
     test_move_gen.cpp
+    test_env.cpp
 )
 
 target_link_libraries(scrabble_tests PRIVATE scrabble_core Catch2::Catch2WithMain)

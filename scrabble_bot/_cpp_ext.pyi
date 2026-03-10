@@ -6,6 +6,8 @@ Provides type information for Pyright in basic mode.
 from __future__ import annotations
 from typing import Optional, overload
 
+import numpy as np
+
 # ── Constants ─────────────────────────────────────────────────────────────────
 
 DELIMETER: str  # Python-spelling alias (with typo, matching original code)
@@ -13,6 +15,8 @@ DELIMITER: str
 BOARD_ROWS: int
 BOARD_COLS: int
 LETTER_SCORES: dict[Letter, int]
+OBS_DIM: int
+MAX_MOVES_PER_ENV: int
 
 # ── Letter ────────────────────────────────────────────────────────────────────
 
@@ -179,3 +183,55 @@ def get_all_letters() -> set[Letter]: ...
 def letter_to_char(letter: Letter) -> str: ...
 def char_to_letter(c: str) -> Letter: ...
 def in_bounds(point: tuple[int, int]) -> bool: ...
+
+# ── RL environment ─────────────────────────────────────────────────────────────
+
+class StepResult:
+    reward: float
+    done: bool
+    def __repr__(self) -> str: ...
+
+class ScrabbleEnv:
+    def __init__(self, dict: Gaddag, seed: int = 0) -> None: ...
+    @overload
+    def __init__(self, other: ScrabbleEnv) -> None: ...  # copy constructor
+    def reset(self) -> None: ...
+    def step(self, action_idx: int) -> StepResult: ...
+    def get_valid_moves(self) -> list[Move]: ...
+    @property
+    def done(self) -> bool: ...
+    @property
+    def current_player(self) -> int: ...
+    @property
+    def consecutive_passes(self) -> int: ...
+    @property
+    def bag_remaining(self) -> int: ...
+    @property
+    def player_scores(self) -> tuple[int, int]: ...
+    @property
+    def rack(self) -> list[Letter]: ...
+
+class VectorizedEnv:
+    def __init__(self, dict: Gaddag, num_envs: int, seed: int = 0) -> None: ...
+    def reset_all(self) -> None: ...
+    def step_all(self) -> None: ...
+    @property
+    def num_envs(self) -> int: ...
+    @property
+    def observations(self) -> np.ndarray: ...   # [N, OBS_DIM] float32
+    @property
+    def actions(self) -> np.ndarray: ...        # [N] int32  (writable)
+    @property
+    def rewards(self) -> np.ndarray: ...        # [N] float32
+    @property
+    def dones(self) -> np.ndarray: ...          # [N] uint8
+    @property
+    def num_moves(self) -> np.ndarray: ...      # [N] int32
+    @property
+    def move_coords(self) -> np.ndarray: ...    # [N, MAX_MOVES_PER_ENV, 4] int8
+    @property
+    def move_letters(self) -> np.ndarray: ...   # [N, MAX_MOVES_PER_ENV, 7] uint8
+    @property
+    def move_is_blank(self) -> np.ndarray: ...  # [N, MAX_MOVES_PER_ENV, 7] uint8
+    @property
+    def move_scores(self) -> np.ndarray: ...    # [N, MAX_MOVES_PER_ENV] int16
