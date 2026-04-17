@@ -173,16 +173,16 @@ Orchestrates `MCTSAgent` + `ReplayBuffer`. `generate_data(num_episodes)` runs ep
 
 | Component | Status |
 |---|---|
-| GADDAG construction + binary caching | ✅ Done |
-| Board (anchors, cross-checks, scoring) | ✅ Done |
-| Move generation (backtracking, blanks, OpenMP) | ✅ Done |
-| ScrabbleEnv (single game, pybind11 bindings) | ✅ Done |
-| VectorizedEnv (N parallel envs, zero-copy buffers) | ✅ Done |
-| MCTSTree + VectorizedMCTS | ✅ Done |
-| MCTSAgent + SelfPlayTrainer | ✅ Done |
-| ReplayBuffer | ✅ Done |
-| Neural network (policy + value heads) | ⬜ Not yet |
-| Full training run | ⬜ Not yet |
+| GADDAG construction + binary caching | Done |
+| Board (anchors, cross-checks, scoring) | Done |
+| Move generation (backtracking, blanks, OpenMP) | Done |
+| ScrabbleEnv (single game, pybind11 bindings) | Done |
+| VectorizedEnv (N parallel envs, zero-copy buffers) | Done |
+| MCTSTree + VectorizedMCTS | In Progress |
+| MCTSAgent + SelfPlayTrainer | In Progress |
+| ReplayBuffer | In Progress |
+| Neural network (policy + value heads) | Not yet |
+| Full training run | Not yet |
 
 ---
 
